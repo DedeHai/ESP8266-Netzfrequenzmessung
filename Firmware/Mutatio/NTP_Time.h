@@ -1,8 +1,5 @@
 
-#define REQUESTSTOAVERAGE 20 //number of requests to send to server to get the average time
-
-//time variables
-bool updatelocaltime = true; //when flag is set, the local time gets updated
+#define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time
 
 
 //ntp stuff
@@ -79,20 +76,20 @@ int NTP_gettime(timeStruct* t)
   uint8_t errorcounter = 0;
   int gotresponse = 0;
 
- // Serial.println("Starting UDP");
+  // Serial.println("Starting UDP");
   udp.begin(UDPlocalPort);
- // Serial.print("Local port: ");
- // Serial.println(udp.localPort());
-  
-  
+  // Serial.print("Local port: ");
+  // Serial.println(udp.localPort());
+
+
   //empty the cache:
- /*
-  while (udp.available())
-  {
-    udp.read();
-    if (millis() - timeout > 2) break;
-  }*/
-  
+  /*
+    while (udp.available())
+    {
+     udp.read();
+     if (millis() - timeout > 2) break;
+    }*/
+
   WiFi.hostByName(ntpServerName, timeServerIP); //get ip for timeserver to use
 
   timeout = millis();
@@ -109,18 +106,18 @@ int NTP_gettime(timeStruct* t)
     t->millistimestamp = millis(); //save the current millis() time at reception of packet
     // We've received a packet, read the data from it
     udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-     udp.stop();
+    udp.stop();
     //the timestamp starts at byte 40 of the received packet and is four bytes,
     // or two words, long. First, esxtract the two words:
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
 
-    if((highWord << 16 | lowWord) == 0)
+    if ((highWord << 16 | lowWord) == 0)
     {
       Serial.println(F(" FAIL1"));
-      return -1;
+      return -999;
     }
-   //Serial.println(highWord << 16 | lowWord);
+    //Serial.println(highWord << 16 | lowWord);
     // combine the four bytes (two words) into a long integer
     // this is NTP time (seconds since Jan 1 1900):
     t->NTPtime = highWord << 16 | lowWord;
@@ -139,8 +136,9 @@ int NTP_gettime(timeStruct* t)
     Serial.println(F(" OK"));
   }
   else {
+    udp.stop();
     Serial.println(F(" FAIL2"));
-    return -1;
+    return -999;
   }
 
 
@@ -156,11 +154,11 @@ int getLocalTimeOffset(timeStruct* t)
   uint64_t NTPmilliseconds = (uint64_t)t->NTPtime * 1000 + t->milliseconds + (millis() - t->millistimestamp);
   int32_t millisdifference = int32_t(nowmilliseconds - NTPmilliseconds);
 
-  if (millisdifference < 1000 && millisdifference > -1000) //limit the values, invalid data was entered if these limits are exceeded
-  {
+ // if (millisdifference < 1000 && millisdifference > -1000) //limit the values, invalid data was entered if these limits are exceeded
+ // {
     return millisdifference;
-  }
-  else return 99999; //invalid data so the offset is unknown.
+ // }
+ // else return 99999; //invalid data so the offset is unknown.
 }
 
 
@@ -206,21 +204,29 @@ void timeManager(void)
         roundtripdelay = NTP_gettime(&localTime); //update the local time
         delay(50);
         roundtripdelay += NTP_gettime(&temptime);
-        if(localTime.NTPtime > 3661332195)
+        if (localTime.NTPtime > 3661332195) //true if we got a valid timestamp
         {
-        timevalidation = temptime.NTPtime - localTime.NTPtime; //should be zero or one if we got the same time twice
+          timevalidation = temptime.NTPtime - localTime.NTPtime; //should be zero or one if we got the same time twice
         }
         else timevalidation = 2; //time we got is invalid for sure.
         errorcounter++;
       } while ((roundtripdelay <= 0 || roundtripdelay > 150) && timevalidation > 1 && errorcounter < 100);
 
-      if (errorcounter < 50) {
+
+      if (errorcounter < 100) {
         localTimeValid = true;
         localtimeoffset = 0;
         Serial.print(" Local Time Initialized: ");
         printUTCtime(localTime.NTPtime);
+        if(RTCTimeValid == false) updateRTCfromlocaltime();
         NTPupdate = millis();
-
+      }
+      else if (RTCTimeValid == true)
+      {
+        if (updatelocaltimefromRTC() == 0)
+        {
+          localTimeValid = true;
+        }
       }
       return; //do not run the code below if server access was already attempted
     }
@@ -229,7 +235,7 @@ void timeManager(void)
 
     if (fastupdate > 0)
     {
-      if (millis() - NTPupdate > 1000) //check time once every second during fastupdate
+      if (millis() - NTPupdate > 2000) //check time once every two seconds during fastupdate
       {
         NTPupdate = millis();
         getNTPupdate = true;
@@ -248,66 +254,73 @@ void timeManager(void)
     if (getNTPupdate)
     {
       int roundtripdelay = NTP_gettime(&temptime);
-       //  Serial.println(roundtripdelay);
+      //  Serial.println(roundtripdelay);
       if (roundtripdelay > 0 && roundtripdelay < 30) //successfully got the time and it is of good quality
       {
         int newoffset = getLocalTimeOffset(&temptime);
-         // Serial.println(newoffset);
-        if (newoffset < 15 && newoffset > -15) //check for valid, low noise data
+        // Serial.println(newoffset);
+        localtimeoffset = ((double)newoffset *  0.2) + (localtimeoffset  * ((double)1.0 - 0.2));
+        Serial.print("Local Time offset [ms] = ");
+        Serial.print(localtimeoffset, 2);
+        Serial.println("\t(" + String(newoffset) + ")");
+        fastupdate--;
+
+        if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 5 ms or fastupdate request, update local clock
         {
-          localtimeoffset = ((double)newoffset *  0.1) + (localtimeoffset  * ((double)1.0 - 0.1));
-          Serial.print("Local Time offset [ms] = ");
-          Serial.print(localtimeoffset, 2);
-          Serial.println("\t(" + String(newoffset) + ")");
-          fastupdate--;
+          int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
+          //set the new found (filtered) timeoffset:
+          if (localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int
+          else  localtimeoffset += 0.5;
 
-          if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 5 ms or fastupdate request, update local clock
+          localTime.milliseconds =  localTime.milliseconds - (int)localtimeoffset;
+          if ( localTime.milliseconds < 0)
           {
-            int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
-            //set the new found (filtered) timeoffset:
-            if(localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int
-            else  localtimeoffset += 0.5;
-            
-            localTime.milliseconds =  localTime.milliseconds - (int)localtimeoffset;
-            if ( localTime.milliseconds < 0)
-            {
-              localTime.NTPtime--;
-              localTime.milliseconds += 1000;
-            }
-            else if (localTime.milliseconds >= 1000)
-            {
-              localTime.NTPtime++;
-              localTime.milliseconds -= 1000;
-            }
-
-            localtimeoffset = 0;
-            Serial.println("Local Time adjusted");
-
-            if (fastupdate < 0) //not a fastupdate request, save the FCPU error
-            {
-             // localTime.NTPtime =  temptime.NTPtime;
-             // localTime.milliseconds =  temptime.milliseconds;
-             // localTime.millistimestamp = temptime.millistimestamp;
-             // fastupdate = REQUESTSTOAVERAGE; //correct this new timestamp
-
-              //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
-              if (newFCPUerror - FCPUerror > 50 || newFCPUerror - FCPUerror  < -50)
-              {
-                //TODO: WRITE BACK TO EEPROM
-              }
-              FCPUerror = newFCPUerror;
-              Serial.println("Measured CPU frequency clock error is" + String(FCPUerror));
-            }
+            localTime.NTPtime--;
+            localTime.milliseconds += 1000;
+          }
+          else if (localTime.milliseconds >= 1000)
+          {
+            localTime.NTPtime++;
+            localTime.milliseconds -= 1000;
           }
 
+          localtimeoffset = 0;
+          Serial.println("Local Time adjusted");
 
+          RTCsynctime++; //check RTC synchronization once in a while (this loop is executed like once ever 30 minutes)
+          if(RTCsynctime > 12) //do not update RTC during fastupdate
+          {
+            updateRTCfromlocaltime();
+            RTCsynctime = 0;
+          }
+          if (fastupdate < 0) //not a fastupdate request, save the FCPU error
+          {
+            // localTime.NTPtime =  temptime.NTPtime;
+            // localTime.milliseconds =  temptime.milliseconds;
+            // localTime.millistimestamp = temptime.millistimestamp;
+            // fastupdate = REQUESTSTOAVERAGE; //correct this new timestamp
 
+            //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
+            if (newFCPUerror - FCPUerror > 50 || newFCPUerror - FCPUerror  < -50)
+            {
+              //TODO: WRITE BACK TO EEPROM
+            }
+            FCPUerror = newFCPUerror;
+            Serial.println("Measured CPU frequency clock error is" + String(FCPUerror));
+          }
         }
-        else return; //data is not good, try again next time
+
       }
-
-
-
+    }
+  }
+  else //no wifi available, use the RTC
+  {
+    if (localTimeValid == false && RTCTimeValid == true) //update the local time from RTC
+    {
+      if (updatelocaltimefromRTC() == 0)
+      {
+        localTimeValid = true;
+      }
     }
   }
 

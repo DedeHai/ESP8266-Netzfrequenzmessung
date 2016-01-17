@@ -1,7 +1,10 @@
 //if CPU clock is running too slow (i.e. lower than 80MHz) the internal time will also run slow and the time offset to the NTP server will become negative
 #define FCPU 80000000UL //CPU clock frequency (will be corrected with clock offset in calculation)
-#define NUMBEROFCAPTURES 50 //number of values to capture from frequency input
-#define MEASUREMENTVALUES 256 //array with this many values is created
+#define NUMBEROFCAPTURES 10 //number of values to capture from frequency input
+#define MEASUREMENTVALUES 150 //array with this many values is created (256 max!)
+
+RtcDS3231 RTC; //DS3231 RTC clock on I2C
+
 
 struct Config {
   String ssid; //32 bytes maximum
@@ -21,7 +24,7 @@ struct Measurement {
   uint32_t Timestamp;
   int16_t milliseconds; //millisecond offset of measurement to timestamp
   int16_t data;
-  uint8_t flag; //flag valid data (for displaying and sending out)
+  uint8_t flag; //flag showing status of the data, binary encoded: first bit is valid data, second bit is serial printed, third bit is written to SD, fourth bit is sent out to server
 };
 
 struct timeStruct {
@@ -30,16 +33,28 @@ struct timeStruct {
   uint32_t millistimestamp; //millis() time when the time was last synchronized
 };
 
+
 int FCPUerror = -175; //error in CPU clock =  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)  -> clockoffset is negative if time offset is negative
 
 timeStruct localTime; //the global local time variables holding current NTP time
 bool localTimeValid = false; //is true once the local time contains valid time data (to prevent corrupted measurement data)
+bool RTCTimeValid = false; //is set true after checking the RTC register 
 unsigned long thingspeakTime = 0; //used in main loop to control when data is sent out (must not do it faster than every 15 seconds)
+uint8_t SD_initialized = 0;
+uint8_t RTCsynctime = 0; //keep track of when to sync the RTC (once every few hours is enough)
 
+volatile uint8_t toggle;
+volatile uint32_t timekeeper = 0;
+volatile uint8_t interruptnoisedetector = 0;
+volatile uint32_t capturetime[NUMBEROFCAPTURES];
+volatile uint32_t lastcapture = 0;
+volatile uint8_t datawriteindex = 0; //index in data measurement array that is written next
+volatile uint8_t datareadindex = 0; //index in data measurement array that has to be read next
+volatile boolean issampling = true;
 
-Measurement measurementdata[128];
+Measurement measurementdata[MEASUREMENTVALUES];
 
-void getNowTime(timeStruct* t)
+void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
 {
   uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + localTime.milliseconds + ((4294967295UL - localTime.millistimestamp) + millis());
   t->NTPtime = nowmilliseconds / 1000;

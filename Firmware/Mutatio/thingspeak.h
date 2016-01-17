@@ -1,6 +1,6 @@
 WiFiClient client;
 
-void updateThingspeak(int data)
+uint8_t updateThingspeak(int data)
 {
   bool thingspeakOK = false;
   //checks if we can already send more data. if we can, check if data needs to be sent.
@@ -23,7 +23,7 @@ void updateThingspeak(int data)
 
   if (!client.connect("api.thingspeak.com", 80)) {
     Serial.println("Thingspeak connect failed");
-    return;
+    return -1;
   }
   header += "POST /update HTTP/1.1\r\n";
   header += "Host: api.thingspeak.com\r\n";
@@ -65,7 +65,12 @@ void updateThingspeak(int data)
   */
 
   client.stop();
-  if ( thingspeakOK == false) Serial.println("FAIL");
+  if ( thingspeakOK == false)
+  { 
+    Serial.println("FAIL");
+    return -1;
+  }
+  else return 0;
 
 }
 
