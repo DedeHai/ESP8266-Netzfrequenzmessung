@@ -36,13 +36,11 @@ uint8_t sendStringToServer(String jsonstring)
   client.print( header);
   client.print(jsonstring);
  
-
-
   int timeout = 0;
   while (client.available() == 0)
   {
     delay(10);
-    if (timeout++ > 200) break; //wait 2s max
+    if (timeout++ > 30) break; //wait .3s max
   }
   // Read all the lines of the reply from server and print them to Serial
   while (client.available()) {

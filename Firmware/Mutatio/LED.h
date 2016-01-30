@@ -1,4 +1,4 @@
-#define PIXEL_PIN 15
+#define PIXEL_PIN 0
 struct RGB {
   uint8_t r;
   uint8_t g;
@@ -44,8 +44,8 @@ void updateLED(void)
           LEDcolor.g = 0;
           LEDcolor.b = 150;
         }
-        if (signalWatchdog > 400 ) //blink red
-        {
+        if (signalWatchdog > 800 ) //blink red
+        {         
           LEDcolor.r = 220;
           LEDcolor.g = 0;
           LEDcolor.b = 0;

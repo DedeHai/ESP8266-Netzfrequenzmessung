@@ -4,7 +4,7 @@
 #define FCPU 80000000UL //CPU clock frequency (will be corrected with clock offset in calculation)
 #define NUMBEROFCAPTURES 100 //number of values to capture from frequency pin input before generating a measurement (100 per second)
 #define MEASUREMENTVALUES 120 //array with this many values is created (255 max!)
-#define MEASUREMENTPIN 0 //pin which is used as clock input
+#define MEASUREMENTPIN 15 //pin which is used as clock input
 RtcDS3231 RTC; //DS3231 RTC clock on I2C
 
 WiFiClient client;
@@ -21,6 +21,9 @@ struct Config {
   uint8_t Netmask[4];
   uint8_t Gateway[4];
   bool useDHCP;
+  bool useSDcard; //make use of the SD card
+  bool useRTC; //make use of the RTC
+  bool sendAllData; //send all data to server, not only the latest value, also sends SD backed up data if useSDcard is set
   int16_t FCPUerror;
 } config;
 
@@ -161,7 +164,7 @@ String getJsonFromMeasurement(Measurement datastruct)
 {
   //create JSON string, send it to server
   //defluxiod Json example: {"Timestamp":"2016-01-29T11:33:22.954022564+01:00","Value":49.9999}
-  
+
   String datapoint;
   datapoint = String(((float)datastruct.data / 100000) + 50, 5);
   char milliseconds[5];
@@ -170,22 +173,22 @@ String getJsonFromMeasurement(Measurement datastruct)
   RtcDateTime timeelements;
   timeelements.InitWithEpoch32Time(epoch); //converte epoch to date, month etc.
 
-char temparr[5];
-sprintf(temparr, "%02u", timeelements.Month()); //need a fixed length, easiest using sprintf
-String monthstr = String(temparr);
-sprintf(temparr, "%02u", timeelements.Day()); //need a fixed length, easiest using sprintf
-String daystr = String(temparr);
-sprintf(temparr, "%02u", timeelements.Hour()+1); //need a fixed length, easiest using sprintf
-String hourstr = String(temparr);
-sprintf(temparr, "%02u", timeelements.Minute()); //need a fixed length, easiest using sprintf
-String minutestr = String(temparr);
-sprintf(temparr, "%02u", timeelements.Second()); //need a fixed length, easiest using sprintf
-String secondstr = String(temparr);
+  char temparr[5];
+  sprintf(temparr, "%02u", timeelements.Month()); //need a fixed length, easiest using sprintf
+  String monthstr = String(temparr);
+  sprintf(temparr, "%02u", timeelements.Day()); //need a fixed length, easiest using sprintf
+  String daystr = String(temparr);
+  sprintf(temparr, "%02u", timeelements.Hour() + 1); //need a fixed length, easiest using sprintf
+  String hourstr = String(temparr);
+  sprintf(temparr, "%02u", timeelements.Minute()); //need a fixed length, easiest using sprintf
+  String minutestr = String(temparr);
+  sprintf(temparr, "%02u", timeelements.Second()); //need a fixed length, easiest using sprintf
+  String secondstr = String(temparr);
 
   String timestamp = String(timeelements.Year()) + "-" +  monthstr + "-" +  daystr;
   timestamp += "T" +  hourstr + ":" +  minutestr + ":" +  secondstr + "." + String(milliseconds);
   timestamp += "+01:00";
-  
+
   String jsonstring = "{\"Timestamp\": \"";
   jsonstring += timestamp;
   jsonstring += "\",\"Value\": ";

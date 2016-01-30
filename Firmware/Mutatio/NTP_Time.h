@@ -81,9 +81,9 @@ int NTP_gettime(timeStruct* t)
   // Serial.print("Local port: ");
   // Serial.println(udp.localPort());
 
-
+Serial.print(F("N1"));
   WiFi.hostByName(ntpServerName, timeServerIP); //get ip for timeserver to use
-
+Serial.print(F("N2"));
   timeout = millis();
   sendNTPpacket(timeServerIP, &NTP_start_time); // send an NTP packet to a time server
   // wait to see if a reply is available
@@ -92,7 +92,7 @@ int NTP_gettime(timeStruct* t)
     gotresponse = udp.parsePacket();
   } while (!gotresponse && (millis() - timeout < 300));
 
-
+Serial.print(F("N3"));
   if (gotresponse == NTP_PACKET_SIZE) {
 
     t->millistimestamp = millis(); //save the current millis() time at reception of packet
@@ -131,7 +131,7 @@ int NTP_gettime(timeStruct* t)
     Serial.println(F(" FAIL2"));
     return -999;
   }
-
+Serial.print(F("N5"));
 
   return t->millistimestamp - NTP_start_time;
 }
@@ -176,7 +176,7 @@ void timeManager(uint8_t forceTimeSync)
     //TODO: add all global millis() timestamp update here
   }
   //run the rest of the code only if the WIFI is available:
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED &&  wifiWatchdog == 0) {
 
     if (localTimeValid == false || forceTimeSync)
     {
@@ -187,8 +187,9 @@ void timeManager(uint8_t forceTimeSync)
       //update the local time immediately!
       do
       {
+        delay(100);
         roundtripdelay = NTP_gettime(&localTime); //update the local time
-        delay(50);
+        delay(100);
         roundtripdelay += NTP_gettime(&temptime);
         if (localTime.NTPtime > 3661332195) //true if we got a valid timestamp
         {
