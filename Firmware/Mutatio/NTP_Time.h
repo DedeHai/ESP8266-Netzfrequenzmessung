@@ -70,7 +70,7 @@ void printUTCtime(uint32_t NTPTime)
 //return value is the time server roundtrip delay (below 20ms yields pretty good timestamps)
 int NTP_gettime(timeStruct* t)
 {
-  Serial.print(F("NTP Sync"));
+  Serial.print(F("NTP Sync "));
   uint32_t NTP_start_time; //local timestamp to measure network roundtrip time
   uint32_t timeout = millis();
   uint8_t errorcounter = 0;
@@ -81,14 +81,6 @@ int NTP_gettime(timeStruct* t)
   // Serial.print("Local port: ");
   // Serial.println(udp.localPort());
 
-
-  //empty the cache:
-  /*
-    while (udp.available())
-    {
-     udp.read();
-     if (millis() - timeout > 2) break;
-    }*/
 
   WiFi.hostByName(ntpServerName, timeServerIP); //get ip for timeserver to use
 
@@ -121,12 +113,10 @@ int NTP_gettime(timeStruct* t)
     // combine the four bytes (two words) into a long integer
     // this is NTP time (seconds since Jan 1 1900):
     t->NTPtime = highWord << 16 | lowWord;
-
     //extract the fraction of the second:
-    t->milliseconds =  (int)((((long)packetBuffer[44] * 256 + packetBuffer[45]) / 65536.0 + 0.0005) * 1000); //fraction in milliseconds
+    t->milliseconds =  ((uint32_t)((packetBuffer[44] << 8) + packetBuffer[45]) * 1000 / 65536); //fraction in milliseconds
     //add half of the roundtrip delay time:
     t->milliseconds =  t->milliseconds + (t->millistimestamp - NTP_start_time) / 2; //is rounded off but its not that accurate anyways
-
     //check if this got us to the next full second:
     if ( t->milliseconds >= 1000)
     {
@@ -134,6 +124,7 @@ int NTP_gettime(timeStruct* t)
       t->milliseconds -= 1000;
     }
     Serial.println(F(" OK"));
+
   }
   else {
     udp.stop();
@@ -154,13 +145,9 @@ int getLocalTimeOffset(timeStruct* t)
   uint64_t NTPmilliseconds = (uint64_t)t->NTPtime * 1000 + t->milliseconds + (millis() - t->millistimestamp);
   int32_t millisdifference = int32_t(nowmilliseconds - NTPmilliseconds);
 
- // if (millisdifference < 1000 && millisdifference > -1000) //limit the values, invalid data was entered if these limits are exceeded
- // {
-    return millisdifference;
- // }
- // else return 99999; //invalid data so the offset is unknown.
-}
+  return millisdifference;
 
+}
 
 //call this function periodically, it manages time and clock calibration
 //on bootup, the time will be set. this function reads the NTP time periodically (every few minutes) and
@@ -170,7 +157,7 @@ int getLocalTimeOffset(timeStruct* t)
 //cpu clock is constantly monitored and corrected
 //note: an offset of 1mHz in the measurement equals a CPU clock offset of 1ms per 50s. Usually the CPU clock is much more accurate.
 //more like 1ms error in 5 minutes
-void timeManager(void)
+void timeManager(uint8_t forceTimeSync)
 {
   static uint32_t NTPupdate = 0; //timestamp on when to update from the NTP server
   static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time
@@ -188,11 +175,10 @@ void timeManager(void)
     localTime.millistimestamp = millis();
     //TODO: add all global millis() timestamp update here
   }
-
   //run the rest of the code only if the WIFI is available:
   if (WiFi.status() == WL_CONNECTED) {
 
-    if (localTimeValid == false)
+    if (localTimeValid == false || forceTimeSync)
     {
       uint8_t errorcounter = 0;
       int roundtripdelay;
@@ -218,7 +204,7 @@ void timeManager(void)
         localtimeoffset = 0;
         Serial.print(" Local Time Initialized: ");
         printUTCtime(localTime.NTPtime);
-        if(RTCTimeValid == false) updateRTCfromlocaltime();
+        updateRTCfromlocaltime();
         NTPupdate = millis();
       }
       else if (RTCTimeValid == true)
@@ -235,7 +221,7 @@ void timeManager(void)
 
     if (fastupdate > 0)
     {
-      if (millis() - NTPupdate > 2000) //check time once every two seconds during fastupdate
+      if (millis() - NTPupdate > 1000) //check time once every second during fastupdate
       {
         NTPupdate = millis();
         getNTPupdate = true;
@@ -259,13 +245,13 @@ void timeManager(void)
       {
         int newoffset = getLocalTimeOffset(&temptime);
         // Serial.println(newoffset);
-        localtimeoffset = ((double)newoffset *  0.2) + (localtimeoffset  * ((double)1.0 - 0.2));
+        localtimeoffset = ((float)newoffset *  0.1) + (localtimeoffset  * ((float)1.0 - 0.1));
         Serial.print("Local Time offset [ms] = ");
         Serial.print(localtimeoffset, 2);
         Serial.println("\t(" + String(newoffset) + ")");
         fastupdate--;
 
-        if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 5 ms or fastupdate request, update local clock
+        if (fastupdate == 0 || localtimeoffset > 3 || localtimeoffset < -3) //the offset reached 5 ms or fastupdate request, update local clock
         {
           int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
           //set the new found (filtered) timeoffset:
@@ -288,7 +274,7 @@ void timeManager(void)
           Serial.println("Local Time adjusted");
 
           RTCsynctime++; //check RTC synchronization once in a while (this loop is executed like once ever 30 minutes)
-          if(RTCsynctime > 12) //do not update RTC during fastupdate
+          if (RTCsynctime > 12) //do not update RTC during fastupdate
           {
             updateRTCfromlocaltime();
             RTCsynctime = 0;
@@ -306,16 +292,16 @@ void timeManager(void)
               //TODO: WRITE BACK TO EEPROM
             }
             FCPUerror = newFCPUerror;
-            Serial.println("Measured CPU frequency clock error is" + String(FCPUerror));
+            Serial.print(F("Measured CPU frequency clock error is "));
+            Serial.println(FCPUerror);
           }
         }
-
       }
     }
   }
   else //no wifi available, use the RTC
   {
-    if (localTimeValid == false && RTCTimeValid == true) //update the local time from RTC
+    if ((localTimeValid == false || forceTimeSync) && RTCTimeValid == true) //update the local time from RTC
     {
       if (updatelocaltimefromRTC() == 0)
       {
@@ -323,6 +309,9 @@ void timeManager(void)
       }
     }
   }
-
+  if (ESP.getCycleCount() - lastcapture < (240000 - 12000)) //make sure ther is no interrupt during the cyclecount millis update
+  {
+    setCyclecountmillis();
+  }
 }
 

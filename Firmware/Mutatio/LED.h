@@ -7,49 +7,56 @@ struct RGB {
 RGB LEDcolor;
 Adafruit_NeoPixel LED = Adafruit_NeoPixel(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-unsigned long LEDtimestamp; //timestamp for updating RGB led
-
+uint32_t LEDtimestamp; //timestamp for updating RGB led
+uint32_t blinktimestamp;
 //update RGB LED from time to time
 void updateLED(void)
 {
 
 
-  /*
-    static uint8_t toggler = 0;
-
-    if ((millis() - LEDtimestamp) > 30) //update led approximately every 30 ms
-    {
-    LEDtimestamp = millis();
-    if (toggler == 0) LEDcolor.blue++;
-    else LEDcolor.blue--;
-
-    if (LEDcolor.blue > 50) {
-      toggler = 1;  //note: force check on NRF24 module every once in a while, maybe an interrupt was missed
-
-    }
-    if (LEDcolor.blue < 2) toggler = 0;
-    LED.setPixelColor(0, LED.Color(LEDcolor.red, LEDcolor.green, LEDcolor.blue));
-  */
-
   //only update led if there is enough time left to the next expected pin interrupt
-  //it surely takes less than 80us (probably only 25), that is 6400CPU clocks. make that 12000 to be sure.
+  //assumption is that interrupts do not happen faster than 3ms or every 240'000 CPU ticks
+  //it takes up to 5000CPU clocks. make that 12000 to be sure the LED timing does not interfere with the interrupt (it deactivates interrupts while clocking)
 
-  if ((lastcapture + 1600000) - ESP.getCycleCount() > 12000)
+  if ((ESP.getCycleCount() - lastcapture) < 228000)
   {
-    if ((millis() - LEDtimestamp) > 30) //update led approximately every 30 ms
+
+
+    if ((millis() - LEDtimestamp) > 30) //update led no faster than every 30 ms
     {
       LEDtimestamp = millis();
+
+      if (millis() - blinktimestamp  > 1500)
+      {
+        // WIFI connection is lost - blink yellow
+        // Measurement signal is lost - blink red
+        // SD card access failed - blink blue
+
+        if (wifiWatchdog > 0 ) //blink yellow
+        {
+          LEDcolor.r = 150;
+          LEDcolor.g = 150;
+          LEDcolor.b = 0;
+        }
+        if (sdWatchdog > 0 ) //blink blue
+        {
+          LEDcolor.r = 0;
+          LEDcolor.g = 0;
+          LEDcolor.b = 150;
+        }
+        if (signalWatchdog > 400 ) //blink red
+        {
+          LEDcolor.r = 220;
+          LEDcolor.g = 0;
+          LEDcolor.b = 0;
+        }
+        if (millis() - blinktimestamp  > 2000) blinktimestamp = millis();
+
+      }
       LED.setPixelColor(0, LED.Color(LEDcolor.r, LEDcolor.g, LEDcolor.b));
+
+
       LED.show();
-
-
-      //
-      //  if(leadbreathe == 0)
-      //  {
-      //    LED.setPixelColor(0, LED.Color(LEDcolor.red, LEDcolor.green, LEDcolor.blue));
-      //
-      //    LED.show();
-      //  }
     }
   }
 }
