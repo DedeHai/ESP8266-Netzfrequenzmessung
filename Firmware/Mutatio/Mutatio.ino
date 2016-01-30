@@ -40,8 +40,8 @@ const double Filterconstant = 0.6; //constant for lowpass filter
 double lowpassvalue = 0; //lowpass filtered frequency offset
 //todo: put the clockoffset value in eeprom
 
-const char* ssid = "****";
-const char* password = "****";
+const char* ssid = "***";
+const char* password = "***";
 
 
 void setup() {
