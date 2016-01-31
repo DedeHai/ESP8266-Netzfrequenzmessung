@@ -21,20 +21,19 @@ uint8_t sendStringToServer(String jsonstring)
 
   String header = "";
   header += "POST /api/submit/meter1 HTTP/1.1\r\n";
-//  header += "Host: http://92.168.1.19:8080/\r\n" ;
- // header += "Connection: close\r\n" ;
- // header += "X-LAMBDANODESAPIKEY: ";
- // header += "SpwnjPz5sp9BZNr37";
+  header += "Host: http://92.168.1.19:8080/\r\n" ;
    header += "Content-Type: application/json\r\n";
   header += "X-API-KEY: ";
   header += "secretkey1";
   header += "\r\n";
+   header += "Connection: close\r\n";
   header += "Content-Length: ";
   header += String(jsonstring.length());
   header += "\r\n\r\n";
 
-  client.print( header);
+  client.print(header);
   client.print(jsonstring);
+
  
   int timeout = 0;
   while (client.available() == 0)
@@ -50,10 +49,8 @@ uint8_t sendStringToServer(String jsonstring)
     {
       // Serial.println(F("Server OK"));
       ServerOK = true;
-      break;
-    }
-
-      Serial.print(line); //print out what we received
+     // break;
+    }    
   }
   client.flush();
   client.stop();

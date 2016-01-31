@@ -5,9 +5,13 @@
 #define NUMBEROFCAPTURES 100 //number of values to capture from frequency pin input before generating a measurement (100 per second)
 #define MEASUREMENTVALUES 120 //array with this many values is created (255 max!)
 #define MEASUREMENTPIN 15 //pin which is used as clock input
+#define PIXEL_PIN 0
+#define ACCESSPOINTIMEOUT 300000 //timeout for accesspoint mode
 RtcDS3231 RTC; //DS3231 RTC clock on I2C
-
+ESP8266WebServer server(80); // The Webserver
 WiFiClient client;
+Adafruit_NeoPixel LED = Adafruit_NeoPixel(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
 void timeManager(uint8_t forceTimeSync); //function prototype
 
 struct Config {
@@ -16,7 +20,6 @@ struct Config {
   String APIkey;
   String DeviceName;  //32 bytes maximum, name for access point
   String DevicePW;  //32 bytes maximum, password for access point
-  String ntpServerName;  //32 bytes maximum
   uint8_t IP[4];
   uint8_t Netmask[4];
   uint8_t Gateway[4];
@@ -24,7 +27,7 @@ struct Config {
   bool useSDcard; //make use of the SD card
   bool useRTC; //make use of the RTC
   bool sendAllData; //send all data to server, not only the latest value, also sends SD backed up data if useSDcard is set
-  int16_t FCPUerror;
+  int16_t FCPUerror;//error in CPU clock =  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)  -> clockoffset is negative if time offset is negative
 } config;
 
 
@@ -43,8 +46,6 @@ struct timeStruct {
   uint32_t millistimestamp; //millis() time when the time was last synchronized
 };
 
-
-int FCPUerror = -175; //error in CPU clock =  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)  -> clockoffset is negative if time offset is negative
 
 timeStruct localTime; //the global local time variables holding current NTP time
 bool localTimeValid = false; //is true once the local time contains valid time data (to prevent corrupted measurement data)
@@ -69,6 +70,8 @@ uint32_t cyclecountMillistimestamp;
 uint32_t cyclecountatTimestamp;
 uint8_t unsentSDData = 0; //unsent data available on SD card?
 String unsentFilename = "unsent.txt";
+uint8_t APactive = 0;
+float localtimeoffset = 0; //low pass filtered offset in [ms] of local time compared to NTP time
 
 Measurement measurementdata[MEASUREMENTVALUES];
 
@@ -108,7 +111,7 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
     measurementdata[measurementindex].data = value;
     measurementdata[measurementindex].quality = gooddatapoints;
     measurementdata[measurementindex].Timestamp = nowTime.NTPtime;
-    measurementdata[measurementindex].milliseconds = nowTime.milliseconds;
+    measurementdata[measurementindex].milliseconds = nowTime.milliseconds-(int)localtimeoffset;
     if ( measurementdata[measurementindex].milliseconds < 0)
     {
       measurementdata[measurementindex].Timestamp--;
@@ -123,9 +126,6 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
     measurementdata[measurementindex].lowpassfilteredmeasurement = lowpassvalue; //!!!for debug
     measurementindex++;
     if (measurementindex >= MEASUREMENTVALUES) measurementindex = 0;
-  }
-  else {
-    timeManager(1); //force a time sync to NTP server or RTC
   }
 }
 
@@ -198,3 +198,60 @@ String getJsonFromMeasurement(Measurement datastruct)
   jsonstring += "}";
   return jsonstring;
 }
+
+
+void   checkButtonState(void)
+{
+
+  static uint16_t buttonstatecounter = 0;
+  static uint32_t APtime = 0;
+
+  //note: button is connected to the LED
+
+  //make the pin an input, read it and set it to an output again
+  pinMode(0, INPUT); //the pullup resistor takes around 4µs to make the state go high (default output state is low)
+  delayMicroseconds(4); //wait for the pin to go high if button is not pressed
+  if (digitalRead(0) == LOW)
+  {
+    buttonstatecounter++;
+  }
+  else buttonstatecounter = 0;
+  pinMode(0, OUTPUT);
+
+  if (buttonstatecounter > 2000)
+  {
+    APtime = millis();
+    if (APactive == 0)   APactive = 1;
+  }
+
+  if (APactive > 0)
+  {
+    if (APactive == 1)
+    {
+      APactive = 2;
+      if (WiFi.status() == WL_CONNECTED)
+      {
+        WiFi.mode(WIFI_AP_STA); //run both services only if connecte, AP is instable if not connected
+      }
+      else
+      {
+        WiFi.mode(WIFI_AP); //accesspoint is very unstable if STA mode is on and no wifi connection is available
+      }
+      WiFi.softAP(config.DeviceName.c_str(), config.DevicePW.c_str());
+
+      //immediately update the LED color (may make one measurement value bad but thats ok)
+      LED.setPixelColor(0, LED.Color(200, 10, 200));
+      LED.show();
+    }
+
+    if (millis() - APtime > ACCESSPOINTIMEOUT)
+    {
+      WiFi.mode(WIFI_STA); //deactivate access point
+      APactive = 0;
+    }
+  }
+
+
+
+}
+

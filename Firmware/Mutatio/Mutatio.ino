@@ -10,14 +10,17 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
+#include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
 #include <SD.h>
 #include <Wire.h> //I2C for RTC
 #include "RtcDS3231.h" //RTC library: https://github.com/Makuna/Rtc
-#include <math.h>
+#include <EEPROM.h>
+//#include <math.h>
 #include "global.h"
+#include "eepromhandling.h"
 #include "RTC_functions.h"
 #include "LED.h"
 #include "NTP_Time.h"
@@ -27,10 +30,10 @@
 #include "OTA_update.h"
 #include "sendtoserver.h"
 #include "SDcard.h"
+#include "webpage.h"
 /*
    TODO:
-   -add a configuration web page
-   -add EEPROM support for config values
+   -find reason for memory leak in server send function
 
 */
 
@@ -40,30 +43,22 @@ const double Filterconstant = 0.6; //constant for lowpass filter
 double lowpassvalue = 0; //lowpass filtered frequency offset
 //todo: put the clockoffset value in eeprom
 
-const char* ssid = "***";
-const char* password = "***";
-
 
 void setup() {
-
 
   Serial.begin(115200);
   memset(measurementdata, 0, sizeof(measurementdata));
   Serial.println("\r\nNetzfrequenzmesser V3");
-  Serial.print("connecting to ");
-  Serial.println(ssid);
 
-  //   delay(10000);
 
-  /*
-    EEPROM.begin(256);
-    if (!ReadConfig())
-    {
-      writeDefaultConfig();
-    }*/
-  config.APIkey = "NQLMU4MBQ98TZ425";
-  config.useSDcard = false;
-  config.useRTC = false;
+
+  EEPROM.begin(256); //eeprom emulation on flash, the ESP8266 has no actual EERPOM
+  if (!ReadConfig())
+  {
+    writeDefaultConfig();
+  }
+
+Serial.println("Measured CPU Frequency error is: " + String(config.FCPUerror)); //for debug
 
   pinMode(PIXEL_PIN, OUTPUT);
   LED.begin();
@@ -78,12 +73,14 @@ void setup() {
 
   wifiWatchdog = 1; //wifi not connected
   sdWatchdog = 1; //SD not initialized
-  signalWatchdog = 250; //signal not initilized
+  signalWatchdog = 1000; //signal not initilized
 
+  Serial.print("connecting to ");
+  Serial.println(config.ssid);
   WiFi.mode(WIFI_STA);
   //  WiFi.disconnect();
   //  delay(100);
-  WiFi.begin(ssid, password);
+  WiFi.begin(config.ssid.c_str(), config.password.c_str());
   // while (WiFi.status() != WL_CONNECTED) {
   //   delay(500);
   //   Serial.print(".");
@@ -91,6 +88,14 @@ void setup() {
 
   SDinit(SD_CSN_PIN);
   SDwriteLogfile("Boot");
+
+
+
+  server.on ( "/", sendPage); //send the config page
+  server.onNotFound(handleNotFound);//handle page not found
+  server.begin(); //start webserver
+
+
 
 
   //  LEDcolor.r = 0;
@@ -106,7 +111,6 @@ void setup() {
   // plotly_init();
   // plotly_openStream();
 
-
 }
 
 
@@ -114,10 +118,10 @@ void setup() {
 void loop() {
 
   uint8_t SDreadycounter = 0; //counts measurements ready to be written to SD card (i.e. they were already printed to Serial)
-
+  checkButtonState(); //check state of 'FLASH' button, stat accesspoint if pressed for some time
   updateLED();
 
-  
+
   //check if there is old data avialable on the SD card and send it to server
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -125,11 +129,11 @@ void loop() {
     {
       Serial.println("");
       Serial.println("WiFi connected");
-      Serial.println("IP address: ");
+      Serial.print("IP address: ");
       Serial.println(WiFi.localIP());
       initOTAupdate();
-      timeManager(1); //force time update from NTP server
       wifiWatchdog = 0; //connected to wifi
+      timeManager(1); //force time update from NTP server
       SDwriteLogfile("WIFI connected");
     }
     ArduinoOTA.handle();
@@ -144,7 +148,7 @@ void loop() {
     if (wifiWatchdog == 0) //wifi was connected before
     {
       SDwriteLogfile("WIFI disconnected");
-      WiFi.begin(ssid, password);
+      WiFi.begin(config.ssid.c_str(), config.password.c_str());
       String state;
       if (WiFi.status() == 0) state = "Idle";
       else if (WiFi.status() == 1) state = "NO SSID AVAILBLE";
@@ -161,10 +165,6 @@ void loop() {
 
   if (issampling == false) ////wait for interrupt to capture a measurement and write data to the buffer
   {
-    //LEDcolor.blue++;
-    //LED.show(); // Initialize LED color
-
-
     uint16_t i = datareadindex;
     uint16_t j;
     uint8_t thingspeakFailed = 0;
@@ -211,7 +211,7 @@ void loop() {
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
     if (unsentSDData == 0 && measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0) //not yet sent and we have a wifi connection
     {
-
+/*
       if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
       {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
@@ -219,13 +219,13 @@ void loop() {
       else
       {
         serverFailed = 1; //try again next time
-      }
+      }*/
     }
 
     issampling = true;
   }
 
-  timeManager(0);
+
 
   if (SD_initialized) //card is initialized //note: tried to add analogRead here, it makes the wifi disconnect very frequently, seems to be a known issue
   {
@@ -249,9 +249,12 @@ void loop() {
     delay(200);
   }
 
-  signalWatchdog++;
+  timeManager(0);
+  yield();
+  server.handleClient();
 
   yield();
+  signalWatchdog++;
 }
 
 

@@ -8,9 +8,9 @@ void initOTAupdate(void)
   //ArduinoOTA.setPassword("abc");
   ArduinoOTA.onStart([]() {
     detachInterrupt(MEASUREMENTPIN);
-    LEDcolor.r = 100;
+    LEDcolor.r = 50;
     LEDcolor.g = 0;
-    LEDcolor.b = 100;
+    LEDcolor.b = 50;
     LED.setPixelColor(0, LED.Color(LEDcolor.r, LEDcolor.g, LEDcolor.b));
     LED.show(); // show LED color
     Serial.println(F("OTA update..."));
@@ -28,6 +28,8 @@ void initOTAupdate(void)
     else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
     else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    attachInterrupt(MEASUREMENTPIN, pininterrupt, CHANGE); //re-enable interrupt after upload fail, program will continue
+    timeManager(1); //time will be out of sync now, force an update
   });
   ArduinoOTA.begin();
 

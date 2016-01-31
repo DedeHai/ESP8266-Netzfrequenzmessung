@@ -112,8 +112,8 @@ void ICACHE_RAM_ATTR pininterrupt() {
 
     capturetimeaverage = ((float)ticksA / (NUMBEROFCAPTURES - baddataA)); //save the value for next time
 
-    frequencyoffset = ((((float)FCPU + FCPUerror) / capturetimeaverage) - 50.0) * 100000; //frequency offset to 50.000Hz in [mHz]*100
-    float lowpassmeasurement = ((((float)FCPU + FCPUerror) / (lowpassfiltered)) - 50.0) * 100000;
+    frequencyoffset = ((((float)FCPU +  config.FCPUerror) / capturetimeaverage) - 50.0) * 100000; //frequency offset to 50.000Hz in [mHz]*100
+    float lowpassmeasurement = ((((float)FCPU +  config.FCPUerror) / (lowpassfiltered)) - 50.0) * 100000;
     writeMeasurement((int16_t)frequencyoffset, (uint8_t) (NUMBEROFCAPTURES - baddataA) , (int16_t)lowpassmeasurement);
 
 

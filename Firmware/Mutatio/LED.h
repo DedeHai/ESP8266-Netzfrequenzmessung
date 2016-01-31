@@ -1,11 +1,10 @@
-#define PIXEL_PIN 0
+
 struct RGB {
   uint8_t r;
   uint8_t g;
   uint8_t b;
 };
 RGB LEDcolor;
-Adafruit_NeoPixel LED = Adafruit_NeoPixel(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 uint32_t LEDtimestamp; //timestamp for updating RGB led
 uint32_t blinktimestamp;
@@ -15,14 +14,15 @@ void updateLED(void)
 
 
   //only update led if there is enough time left to the next expected pin interrupt
-  //assumption is that interrupts do not happen faster than 3ms or every 240'000 CPU ticks
-  //it takes up to 5000CPU clocks. make that 12000 to be sure the LED timing does not interfere with the interrupt (it deactivates interrupts while clocking)
+  //assumption is that interrupts do not happen faster than 5ms or every 400'000 CPU ticks
+  //with a good signal, the interrupt happens no faster than after 8ms
+  //it takes up to 5000CPU clocks (62µs). make sure the LED timing does not interfere with the interrupt (it deactivates interrupts while clocking)
 
-  if ((ESP.getCycleCount() - lastcapture) < 228000)
+  if ((ESP.getCycleCount() - lastcapture) < 400000)
   {
 
 
-    if ((millis() - LEDtimestamp) > 30) //update led no faster than every 30 ms
+    if ((millis() - LEDtimestamp) > 5) //update led no faster than every 5 ms
     {
       LEDtimestamp = millis();
 
@@ -51,7 +51,13 @@ void updateLED(void)
           LEDcolor.b = 0;
         }
         if (millis() - blinktimestamp  > 2000) blinktimestamp = millis();
-
+      }
+      
+      if(APactive > 0)
+      {
+          LEDcolor.r = 200;
+          LEDcolor.g = 10;
+          LEDcolor.b = 200;
       }
       LED.setPixelColor(0, LED.Color(LEDcolor.r, LEDcolor.g, LEDcolor.b));
 
