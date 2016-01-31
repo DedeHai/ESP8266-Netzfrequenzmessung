@@ -301,8 +301,9 @@ void timeManager(uint8_t forceTimeSync)
               WriteConfig(); //write back to flash ("eeprom")
             }
             config.FCPUerror = newFCPUerror;
-            Serial.print(F("Measured CPU frequency clock error is "));
-            Serial.println(config.FCPUerror);
+            String cpuerroroutput = "CPU frequency error is " + config.FCPUerror;
+            Serial.println(cpuerroroutput);
+            SDwriteLogfile(cpuerroroutput);
           }
 
           NTPfailcounter = 0;

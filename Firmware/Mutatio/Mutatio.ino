@@ -21,6 +21,7 @@
 //#include <math.h>
 #include "global.h"
 #include "eepromhandling.h"
+#include "SDcard.h"
 #include "RTC_functions.h"
 #include "LED.h"
 #include "NTP_Time.h"
@@ -29,7 +30,6 @@
 #include "plotly.h"
 #include "OTA_update.h"
 #include "sendtoserver.h"
-#include "SDcard.h"
 #include "webpage.h"
 /*
    TODO:

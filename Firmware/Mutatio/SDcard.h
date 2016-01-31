@@ -65,7 +65,10 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
     day  -= tempdays;
     day++; //add one day to start at day 1 in a year
 
-    String sfilename = String(year) + "--" + String(day) + ".txt";
+    char daystring[5];
+    sprintf(daystring, "%03u", day); //fixed length number (002, 073, etc)
+
+    String sfilename = String(year) + String(daystring) + ".txt";
     Serial.print("Filename: ");
     Serial.println(sfilename);
 
