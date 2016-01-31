@@ -34,6 +34,7 @@
 /*
    TODO:
    -find reason for memory leak in server send function
+   -make time tracking rock solid
 
 */
 

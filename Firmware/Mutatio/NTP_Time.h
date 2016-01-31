@@ -164,13 +164,15 @@ void timeManager(uint8_t forceTimeSync)
 
   if (NTPupdate > 0 && millis() < NTPupdate) // millis() did overflow!
   {
+    //deactivate the interrupt while we update the time:
+    noInterrupts();
     NTPupdate = millis();
     //calculate a new NTP time from overflown millis()
     uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + localTime.milliseconds + ((4294967295UL - localTime.millistimestamp) + millis());
     localTime.NTPtime = nowmilliseconds / 1000;
     localTime.milliseconds =  nowmilliseconds - (uint64_t)localTime.NTPtime * 1000;
     localTime.millistimestamp = millis();
-    //TODO: add all global millis() timestamp update here
+    interrupts();
   }
   //run the rest of the code only if the WIFI is available:
   if (WiFi.status() == WL_CONNECTED) {
@@ -186,7 +188,7 @@ void timeManager(uint8_t forceTimeSync)
       {
         roundtripdelay = NTP_gettime(&localTime); //update the local time
         delay(100);
-        roundtripdelay += NTP_gettime(&temptime);
+        roundtripdelay += NTP_gettime(&temptime); //get another timestamp to validate
         if (localTime.NTPtime > 3661332195) //true if we got a valid timestamp
         {
           timevalidation = temptime.NTPtime - localTime.NTPtime; //should be zero or one if we got the same time twice
@@ -241,19 +243,29 @@ void timeManager(uint8_t forceTimeSync)
       if (roundtripdelay > 0 && roundtripdelay < 30) //successfully got the time and it is of good quality
       {
         int newoffset = getLocalTimeOffset(&temptime);
+        if (fastupdate < 0) //this is not a fastupdated, offset must be small, check if it is
+        {
+          int offsetdeviation = localtimeoffset - newoffset;
+          if ( offsetdeviation > 10 || offsetdeviation < -10) //10ms deviation is way too big for an accurate NTP reading (usually is within ±5ms)
+          {
+            newoffset = localtimeoffset; //ignore this value in the filter below
+            NTPfailcounter += 10; //if this happens repeatedly, local clock is out of sync for some reason, trigger a sync error and do a fastupdate            
+            NTPupdate = millis() - 59800;//get another value soon:
+          }
+        }
         // Serial.println(newoffset);
-        localtimeoffset = ((float)newoffset *  0.1) + (localtimeoffset  * ((float)1.0 - 0.1));
+        localtimeoffset = ((float)newoffset *  0.15) + (localtimeoffset  * ((float)1.0 - 0.15));
         Serial.print("Local Time offset [ms] = ");
         Serial.print(localtimeoffset, 2);
         Serial.println("\t(" + String(newoffset) + ")");
         fastupdate--;
 
-        if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 4 ms or fastupdate request, update local clock
+        if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 5 ms or fastupdate request, update local clock
         {
           //todo: this algorithm is not rigid. better do a fast update every 30 minutes and calculate cpu offset from that!
           int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
           //set the new found (filtered) timeoffset:
-          if (localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int
+          if (localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int (not really necessary here)
           else  localtimeoffset += 0.5;
 
           //deactivate the interrupt while we update the time:
@@ -273,35 +285,34 @@ void timeManager(uint8_t forceTimeSync)
           localtimeoffset = 0;
           interrupts(); //reactivate the interrupts
           Serial.println("Local Time adjusted");
-          if (NTPfailcounter < 40) //only update RTC and FCPUerror if we got a good connection
+
+          RTCsynctime++; //check RTC synchronization once in a while
+          if (RTCsynctime > 12) //do not update RTC during fastupdate
           {
-            RTCsynctime++; //check RTC synchronization once in a while (this loop is executed like once ever 30 minutes)
-            if (RTCsynctime > 12) //do not update RTC during fastupdate
-            {
-              updateRTCfromlocaltime();
-              RTCsynctime = 0;
-            }
-            if (fastupdate < 0) //not a fastupdate request, save the FCPU error
-            {
-              //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
-              if (newFCPUerror - config.FCPUerror > 40 || newFCPUerror - config.FCPUerror  < -40)
-              {
-                config.FCPUerror = newFCPUerror;
-                WriteConfig(); //write back to flash ("eeprom")
-              }
-              config.FCPUerror = newFCPUerror;
-              Serial.print(F("Measured CPU frequency clock error is "));
-              Serial.println(config.FCPUerror);
-            }
+            updateRTCfromlocaltime();
+            RTCsynctime = 0;
           }
+          if (fastupdate < 0) //not a fastupdate request, save the FCPU error
+          {
+            //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
+            if (newFCPUerror - config.FCPUerror > 40 || newFCPUerror - config.FCPUerror  < -40)
+            {
+              config.FCPUerror = newFCPUerror;
+              WriteConfig(); //write back to flash ("eeprom")
+            }
+            config.FCPUerror = newFCPUerror;
+            Serial.print(F("Measured CPU frequency clock error is "));
+            Serial.println(config.FCPUerror);
+          }
+
           NTPfailcounter = 0;
         }
       }
-      else //did not get any good time value, try again in a few seconds soon
+      else //did not get any good time value, try again soon
       {
         NTPupdate = millis() - 59000;
         NTPfailcounter++;
-        if (NTPfailcounter > 100)
+        if (NTPfailcounter > 200)
         {
           fastupdate = REQUESTSTOAVERAGE; //getting a lot of failed requests, do a fast update to keep track of time and not fall out of pace
           NTPfailcounter = 0;
@@ -319,7 +330,7 @@ void timeManager(uint8_t forceTimeSync)
       }
     }
   }
-  if (ESP.getCycleCount() - lastcapture < (240000 - 12000)) //make sure ther is no interrupt during the cyclecount millis update
+  if (ESP.getCycleCount() - lastcapture < (230000)) //check that there is low chance of upcoming interrupt during the cyclecount millis update
   {
     setCyclecountmillis();
   }
