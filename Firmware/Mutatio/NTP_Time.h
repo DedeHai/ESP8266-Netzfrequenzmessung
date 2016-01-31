@@ -254,13 +254,13 @@ void timeManager(uint8_t forceTimeSync)
           }
         }
         // Serial.println(newoffset);
-        localtimeoffset = ((float)newoffset *  0.15) + (localtimeoffset  * ((float)1.0 - 0.15));
+        localtimeoffset = ((float)newoffset *  0.2) + (localtimeoffset  * ((float)1.0 - 0.2));
         Serial.print("Local Time offset [ms] = ");
         Serial.print(localtimeoffset, 2);
         Serial.println("\t(" + String(newoffset) + ")");
         fastupdate--;
 
-        if (fastupdate == 0 || localtimeoffset > 5 || localtimeoffset < -5) //the offset reached 5 ms or fastupdate request, update local clock
+        if (fastupdate == 0 || localtimeoffset > 6 || localtimeoffset < -6) //the offset reached 6ms or fastupdate request, update local clock
         {
           //todo: this algorithm is not rigid. better do a fast update every 30 minutes and calculate cpu offset from that!
           int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)

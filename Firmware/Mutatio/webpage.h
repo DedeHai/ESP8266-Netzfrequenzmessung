@@ -71,7 +71,7 @@ void sendPage(void)
 
   String pageContent = "<HTML><HEAD> <title>Mutatio Configuration</title></HEAD>\n";
   pageContent += "<BODY bgcolor=\"#ffcc00\" text=\"#000000\">";
-  pageContent += "<FONT size=\"4\" FACE=\"Verdana\">\n<BR><b>Setup WiFi and Configuration</b><BR><BR></font>";
+  pageContent += "<FONT size=\"6\" FACE=\"Verdana\">\n<BR><b>Mutatio Configuration</b><BR><BR></font>";
   pageContent += "<form action=\"\" method=\"GET\">\n";
   pageContent += "<b>WiFi Configuration</b><BR><BR>\n";
   pageContent += "<input type=\"text\"  size=\"24\" maxlength=\"31\" name=\"SSID\" value=\"";
