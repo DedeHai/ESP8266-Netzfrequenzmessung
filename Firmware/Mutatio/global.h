@@ -86,8 +86,10 @@ uint32_t ICACHE_RAM_ATTR getMillisfromCycleCount(void) //assumes that the timest
 
 void setCyclecountmillis(void)
 {
+  noInterrupts();
   cyclecountatTimestamp = ESP.getCycleCount();
   cyclecountMillistimestamp = millis();
+  interrupts();
 }
 
 void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
