@@ -113,7 +113,7 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
     measurementdata[measurementindex].data = value;
     measurementdata[measurementindex].quality = gooddatapoints;
     measurementdata[measurementindex].Timestamp = nowTime.NTPtime;
-    measurementdata[measurementindex].milliseconds = nowTime.milliseconds-(int)localtimeoffset;
+    measurementdata[measurementindex].milliseconds = nowTime.milliseconds - (int)localtimeoffset;
     if ( measurementdata[measurementindex].milliseconds < 0)
     {
       measurementdata[measurementindex].Timestamp--;
@@ -172,28 +172,30 @@ String getJsonFromMeasurement(Measurement datastruct)
   char milliseconds[5];
   sprintf(milliseconds, "%03u", datastruct.milliseconds); //need a fixed length, easiest using sprintf
   uint32_t epoch  = datastruct.Timestamp - 2208988800UL;
-  RtcDateTime timeelements;
-  timeelements.InitWithEpoch32Time(epoch); //converte epoch to date, month etc.
+  /*
+    RtcDateTime timeelements;
+    timeelements.InitWithEpoch32Time(epoch); //converte epoch to date, month etc.
+    char temparr[5];
+    sprintf(temparr, "%02u", timeelements.Month()); //need a fixed length, easiest using sprintf
+    String monthstr = String(temparr);
+    sprintf(temparr, "%02u", timeelements.Day()); //need a fixed length, easiest using sprintf
+    String daystr = String(temparr);
+    sprintf(temparr, "%02u", timeelements.Hour() + 1); //need a fixed length, easiest using sprintf
+    String hourstr = String(temparr);
+    sprintf(temparr, "%02u", timeelements.Minute()); //need a fixed length, easiest using sprintf
+    String minutestr = String(temparr);
+    sprintf(temparr, "%02u", timeelements.Second()); //need a fixed length, easiest using sprintf
+    String secondstr = String(temparr);
 
-  char temparr[5];
-  sprintf(temparr, "%02u", timeelements.Month()); //need a fixed length, easiest using sprintf
-  String monthstr = String(temparr);
-  sprintf(temparr, "%02u", timeelements.Day()); //need a fixed length, easiest using sprintf
-  String daystr = String(temparr);
-  sprintf(temparr, "%02u", timeelements.Hour() + 1); //need a fixed length, easiest using sprintf
-  String hourstr = String(temparr);
-  sprintf(temparr, "%02u", timeelements.Minute()); //need a fixed length, easiest using sprintf
-  String minutestr = String(temparr);
-  sprintf(temparr, "%02u", timeelements.Second()); //need a fixed length, easiest using sprintf
-  String secondstr = String(temparr);
+    String timestamp = String(timeelements.Year()) + "-" +  monthstr + "-" +  daystr;
+    timestamp += "T" +  hourstr + ":" +  minutestr + ":" +  secondstr + "." + String(milliseconds);
+    timestamp += "+01:00";
+  */
+  String timestamp = String(epoch) + "." + String(milliseconds);
 
-  String timestamp = String(timeelements.Year()) + "-" +  monthstr + "-" +  daystr;
-  timestamp += "T" +  hourstr + ":" +  minutestr + ":" +  secondstr + "." + String(milliseconds);
-  timestamp += "+01:00";
-
-  String jsonstring = "{\"Timestamp\": \"";
+  String jsonstring = "{\"Timestamp\": ";
   jsonstring += timestamp;
-  jsonstring += "\",\"Value\": ";
+  jsonstring += ",\"Value\": ";
   jsonstring += datapoint;
   // jsonstring += ",\"Quality\": ";
   // jsonstring += String(datastruct.quality); //how many good values went into this measurment
@@ -230,6 +232,10 @@ void   checkButtonState(void)
   {
     if (APactive == 1)
     {
+      //immediately update the LED color (may make one measurement value bad but thats ok)
+      LED.setPixelColor(0, LED.Color(10, 190, 200));
+      LED.show();
+
       APactive = 2;
       if (WiFi.status() == WL_CONNECTED)
       {
@@ -240,10 +246,6 @@ void   checkButtonState(void)
         WiFi.mode(WIFI_AP); //accesspoint is very unstable if STA mode is on and no wifi connection is available
       }
       WiFi.softAP(config.DeviceName.c_str(), config.DevicePW.c_str());
-
-      //immediately update the LED color (may make one measurement value bad but thats ok)
-      LED.setPixelColor(0, LED.Color(200, 10, 200));
-      LED.show();
     }
 
     if (millis() - APtime > ACCESSPOINTIMEOUT)

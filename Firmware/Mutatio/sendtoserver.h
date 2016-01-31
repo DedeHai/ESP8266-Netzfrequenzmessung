@@ -6,29 +6,31 @@ uint8_t sendStringToServer(String jsonstring)
   //checks if we can already send more data. if we can, check if data needs to be sent.
   //then format the data and send it out through the ether
   
-  if (!client.connect("192.168.1.19", 8080)) {
+  if (!client.connect("192.168.1.12", 8080)) {
     Serial.println(F("Server connect failed"));
     client.flush();
     client.stop();
     return -1;
   }
 
-
-  Serial.print("Sendoutdata: ");
-  Serial.println(jsonstring);
   Serial.print("Free heap:");
   Serial.println(ESP.getFreeHeap(), DEC); //debug: check for memory leaks
 
+  Serial.print("Sendoutdata: ");
+  Serial.println(jsonstring);
+
+  String msglength = String(jsonstring.length());
+ 
   String header = "";
   header += "POST /api/submit/meter1 HTTP/1.1\r\n";
-  header += "Host: http://92.168.1.19:8080/\r\n" ;
-   header += "Content-Type: application/json\r\n";
+  header += "Host: http://92.168.1.12:8080/\r\n" ;
   header += "X-API-KEY: ";
   header += "secretkey1";
   header += "\r\n";
-   header += "Connection: close\r\n";
+  header += "Content-Type: application/json\r\n";
+  header += "Connection: close\r\n";
   header += "Content-Length: ";
-  header += String(jsonstring.length());
+  header += msglength;
   header += "\r\n\r\n";
 
   client.print(header);
@@ -39,7 +41,7 @@ uint8_t sendStringToServer(String jsonstring)
   while (client.available() == 0)
   {
     delay(10);
-    if (timeout++ > 30) break; //wait .3s max
+    if (timeout++ > 50) break; //wait .5s max
   }
   // Read all the lines of the reply from server and print them to Serial
   while (client.available()) {
@@ -49,7 +51,7 @@ uint8_t sendStringToServer(String jsonstring)
     {
       // Serial.println(F("Server OK"));
       ServerOK = true;
-     // break;
+      break;
     }    
   }
   client.flush();

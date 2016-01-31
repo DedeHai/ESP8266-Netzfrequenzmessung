@@ -34,7 +34,7 @@
 /*
    TODO:
    -find reason for memory leak in server send function
-   -make time tracking rock solid
+   -add non-DHCP control to web page and to wifi handling
 
 */
 
@@ -212,7 +212,7 @@ void loop() {
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
     if (unsentSDData == 0 && measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0) //not yet sent and we have a wifi connection
     {
-/*
+
       if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
       {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
@@ -220,7 +220,7 @@ void loop() {
       else
       {
         serverFailed = 1; //try again next time
-      }*/
+      }
     }
 
     issampling = true;

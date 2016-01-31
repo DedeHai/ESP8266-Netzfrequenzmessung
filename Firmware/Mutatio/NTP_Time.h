@@ -287,7 +287,7 @@ void timeManager(uint8_t forceTimeSync)
           Serial.println("Local Time adjusted");
 
           RTCsynctime++; //check RTC synchronization once in a while
-          if (RTCsynctime > 12) //do not update RTC during fastupdate
+          if (RTCsynctime > 24) //do not update RTC during fastupdate
           {
             updateRTCfromlocaltime();
             RTCsynctime = 0;
