@@ -35,7 +35,7 @@
    TODO:
    -find reason for memory leak in server send function
    -add non-DHCP control to web page and to wifi handling
-
+   -handle config.sendAllData correctly (currently not implemented)
 */
 
 
@@ -59,7 +59,7 @@ void setup() {
     writeDefaultConfig();
   }
 
-Serial.println("Measured CPU Frequency error is: " + String(config.FCPUerror)); //for debug
+  Serial.println("Measured CPU Frequency error is: " + String(config.FCPUerror)); //for debug
 
   pinMode(PIXEL_PIN, OUTPUT);
   LED.begin();
@@ -95,8 +95,6 @@ Serial.println("Measured CPU Frequency error is: " + String(config.FCPUerror)); 
   server.on ( "/", sendPage); //send the config page
   server.onNotFound(handleNotFound);//handle page not found
   server.begin(); //start webserver
-
-
 
 
   //  LEDcolor.r = 0;
@@ -150,6 +148,10 @@ void loop() {
     {
       SDwriteLogfile("WIFI disconnected");
       WiFi.begin(config.ssid.c_str(), config.password.c_str());
+      //  if (!config.useDHCP)
+      // {
+      //  WiFi.config(IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3] ),  IPAddress(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3] ) , IPAddress(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3] ));
+      // }
       String state;
       if (WiFi.status() == 0) state = "Idle";
       else if (WiFi.status() == 1) state = "NO SSID AVAILBLE";
@@ -161,7 +163,8 @@ void loop() {
       Serial.println("WIFI not available: " + state);
     }
     wifiWatchdog++; //disconnected from wifi
-    delay(100);
+    if (wifiWatchdog > 10000) wifiWatchdog = 0; //try to reconnect to WiFi every ~10 seconds
+    delay(1);
   }
 
   if (issampling == false) ////wait for interrupt to capture a measurement and write data to the buffer
@@ -190,10 +193,10 @@ void loop() {
 
         if ((millis() - thingspeakTime > 15000) && (thingspeakFailed == 0) && WiFi.status() == WL_CONNECTED) //send this one out to thingspeak
         {
-          thingspeakFailed = updateThingspeak(measurementdata[i].data);
+          // thingspeakFailed = updateThingspeak(measurementdata[i].data);
           Serial.print("Free heap:");
           Serial.println(ESP.getFreeHeap(), DEC); //debug: check for memory leaks
-
+          thingspeakTime = millis();
           // Serial.print(millis());
           // Serial.print(" ");
           //Serial.println(getMillisfromCycleCount());
@@ -244,11 +247,11 @@ void loop() {
       }
     }
   }
-  else if (config.useSDcard)
+  else if (config.useSDcard && sdWatchdog == 1)
   {
     SDinit(SD_CSN_PIN);
-    delay(200);
   }
+  else sdWatchdog++;
 
   timeManager(0);
   yield();

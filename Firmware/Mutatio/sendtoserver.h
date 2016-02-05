@@ -13,11 +13,9 @@ uint8_t sendStringToServer(String jsonstring)
     return -1;
   }
 
-  Serial.print("Free heap:");
-  Serial.println(ESP.getFreeHeap(), DEC); //debug: check for memory leaks
-
-  Serial.print("Sendoutdata: ");
-  Serial.println(jsonstring);
+ 
+ // Serial.print("Sendoutdata: ");
+ // Serial.println(jsonstring);
 
   String msglength = String(jsonstring.length());
  

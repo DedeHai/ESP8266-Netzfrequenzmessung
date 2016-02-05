@@ -158,7 +158,7 @@ void timeManager(uint8_t forceTimeSync)
 {
   static uint32_t NTPupdate = 0; //timestamp on when to update from the NTP server
   static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time
-  static uint8_t NTPfailcounter = 0;
+  static uint16_t NTPfailcounter = 0;
   timeStruct temptime; //time struct to get data from servers
   bool getNTPupdate = false; //if set true, a timestamp is requested from NTP server and evaluated
 
@@ -260,9 +260,9 @@ void timeManager(uint8_t forceTimeSync)
         Serial.println("\t(" + String(newoffset) + ")");
         fastupdate--;
 
-        if (fastupdate == 0 || localtimeoffset > 6 || localtimeoffset < -6) //the offset reached 6ms or fastupdate request, update local clock
+        if (fastupdate == 0 || localtimeoffset > 10 || localtimeoffset < -10) //the offset reached 10ms or fastupdate request, update local clock
         {
-          //todo: this algorithm is not rigid. better do a fast update every 30 minutes and calculate cpu offset from that!
+          //todo: this algorithm is not very rigid. better do a fast update every 30 minutes and calculate cpu offset from that?
           int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
           //set the new found (filtered) timeoffset:
           if (localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int (not really necessary here)
@@ -294,14 +294,13 @@ void timeManager(uint8_t forceTimeSync)
           }
           if (fastupdate < 0) //not a fastupdate request, save the FCPU error
           {
+            config.FCPUerror = newFCPUerror;
             //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
-            if (newFCPUerror - config.FCPUerror > 40 || newFCPUerror - config.FCPUerror  < -40)
-            {
-              config.FCPUerror = newFCPUerror;
+            if (newFCPUerror - config.FCPUerror < 40 || newFCPUerror - config.FCPUerror  > -40)
+            {             
               WriteConfig(); //write back to flash ("eeprom")
             }
-            config.FCPUerror = newFCPUerror;
-            String cpuerroroutput = "CPU frequency error is " + config.FCPUerror;
+            String cpuerroroutput = "CPU frequency error is " + String(config.FCPUerror);
             Serial.println(cpuerroroutput);
             SDwriteLogfile(cpuerroroutput);
           }
@@ -311,9 +310,9 @@ void timeManager(uint8_t forceTimeSync)
       }
       else //did not get any good time value, try again soon
       {
-        NTPupdate = millis() - 59000;
+        NTPupdate = millis() - 55000;
         NTPfailcounter++;
-        if (NTPfailcounter > 200)
+        if (NTPfailcounter > 600)
         {
           fastupdate = REQUESTSTOAVERAGE; //getting a lot of failed requests, do a fast update to keep track of time and not fall out of pace
           NTPfailcounter = 0;

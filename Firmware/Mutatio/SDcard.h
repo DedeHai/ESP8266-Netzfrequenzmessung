@@ -5,8 +5,20 @@ void SDwriteLogfile(String entry)
 {
   if (config.useSDcard)
   {
+    RtcDateTime RTCtime;
+
     String sfilename = "logfile.txt";
-    RtcDateTime RTCtime  = RTC.GetDateTime(); //get current time from RTC
+    if (RTCTimeValid == true)
+    {
+      RTCtime  = RTC.GetDateTime(); //get current time from RTC
+    }
+    else //use local time (no matter if it is valid, if invalid, log time will be wrong but at least we have a log entry)
+    {
+      timeStruct nowTime;
+      getNowTime(&nowTime);
+      uint32_t epoch  = nowTime.NTPtime - 2208988800UL;
+      RTCtime.InitWithEpoch32Time(epoch);
+    }
 
     char filename[sizeof(sfilename)];
     sfilename.toCharArray(filename, sizeof(filename));
@@ -88,15 +100,18 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
       uint16_t j;
       uint16_t i = datareadindex;
       sdWatchdog = 0;
-      for (j = datareadindex; j < (uint16_t)count + datareadindex; j++) //check first if any data is pending to be sent to server
+      if (config.sendAllData)
       {
-        if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x08) == 0)) //data not yet sent to server
+        for (j = datareadindex; j < (uint16_t)count + datareadindex; j++) //check first if any data is pending to be sent to server
         {
-          unsentDataFile = SD.open(unsentFilename, FILE_WRITE);
-          break;
+          if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x08) == 0) ) //data not yet sent to server
+          {
+            unsentDataFile = SD.open(unsentFilename, FILE_WRITE);
+            break;
+          }
+          i++;
+          if (i >= (MEASUREMENTVALUES)) i = 0; //continue at beginning if end of buffer reached
         }
-        i++;
-        if (i >= (MEASUREMENTVALUES)) i = 0; //continue at beginning if end of buffer reached
       }
 
 
@@ -106,17 +121,18 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
         if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x04) == 0)) //data not yet written to SD
         {
 
-          /*
-                  //save unsent data in special file
-                  if ((measurementdata[i].flag & 0x08) == 0) //not yet sent to server, save a backup
-                  {
-                    String unsentdatastring = "1 " + getJsonFromMeasurement(measurementdata[i]) + "\r\n";
-                    unsentDataFile.print(unsentdatastring);
-                    unsentSDData = 1; //unsent data is now pending
-                    measurementdata[i].flag |= 0x08; //set sent out flag, this data is backed up now, will be sent when backup data is sent out
-                    // Serial.println(F("Unsent data written to SD"));
-                  }
-          */
+          if (config.sendAllData)
+          {
+            //save unsent data in special file
+            if ((measurementdata[i].flag & 0x08) == 0) //not yet sent to server, save a backup
+            {
+              String unsentdatastring = "1 " + getJsonFromMeasurement(measurementdata[i]) + "\r\n";
+              unsentDataFile.print(unsentdatastring);
+              unsentSDData = 1; //unsent data is now pending
+              measurementdata[i].flag |= 0x08; //set sent out flag, this data is backed up now, will be sent when backup data is sent out
+              // Serial.println(F("Unsent data written to SD"));
+            }
+          }
 
           char temparr[12] = {0};
           String datapoint;
@@ -202,7 +218,6 @@ uint8_t SDinit(uint8_t pin)
   yield();
   unsentSDData = 0;
   SD_initialized = 0;
-  sdWatchdog = 0;
   if (config.useSDcard)
   {
     //check if an unsent data file exists on the SD card
@@ -217,8 +232,8 @@ uint8_t SDinit(uint8_t pin)
     //check SD detect pin, sd is present if it is low
     if (analogRead(A0) < 50)
     {
-      sdWatchdog = 0;
       if (!SD.begin(pin)) {
+        sdWatchdog = 0;
         yield();
         Serial.println(F("Card failed, rebooting..."));
         delay(100);
@@ -227,6 +242,7 @@ uint8_t SDinit(uint8_t pin)
       }
       else
       {
+        sdWatchdog = 0;
         SD_initialized = 1;
         Serial.println(F("SD card initialized."));
         File dir = SD.open("/");
@@ -238,7 +254,7 @@ uint8_t SDinit(uint8_t pin)
     {
       Serial.println(F("Card not present"));
       SD_initialized = 0;
-      sdWatchdog = 1;
+      sdWatchdog++;
     }
   }
 }

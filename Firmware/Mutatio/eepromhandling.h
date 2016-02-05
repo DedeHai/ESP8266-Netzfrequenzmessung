@@ -131,7 +131,7 @@ void writeDefaultConfig(void)
   config.APIkey = "";
   config.useDHCP = true;
   config.useSDcard = false;
-  config.useRTC = true;
+  config.useRTC = false;
   config.sendAllData = false;
   config.FCPUerror = 0;
   WriteConfig();

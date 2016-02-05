@@ -17,11 +17,9 @@ void updateLED(void)
   //assumption is that interrupts do not happen faster than 5ms or every 400'000 CPU ticks
   //with a good signal, the interrupt happens no faster than after 8ms
   //it takes up to 5000CPU clocks (62µs). make sure the LED timing does not interfere with the interrupt (it deactivates interrupts while clocking)
-
-  if ((ESP.getCycleCount() - lastcapture) < 400000)
+  //also update LED if signalWatchdog timed out (i.e. signal lost)
+  if ((ESP.getCycleCount() - lastcapture) < 400000 || signalWatchdog > 800) 
   {
-
-
     if ((millis() - LEDtimestamp) > 5) //update led no faster than every 5 ms
     {
       LEDtimestamp = millis();
@@ -55,7 +53,7 @@ void updateLED(void)
       
       if(APactive > 0)
       {
-          LEDcolor.r = 200;
+          LEDcolor.r = 190;
           LEDcolor.g = 10;
           LEDcolor.b = 200;
       }

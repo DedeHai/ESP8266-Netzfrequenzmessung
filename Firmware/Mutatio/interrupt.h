@@ -1,4 +1,4 @@
-#define ALLOWEDNOISE 450 //accepted noise in ticks 
+#define ALLOWEDNOISE 550 //accepted noise in ticks 
 /*
   void ICACHE_RAM_ATTR pininterrupt() {
 
@@ -53,7 +53,7 @@ void ICACHE_RAM_ATTR pininterrupt() {
   }
 
 
-  //check for valid time: must be 1600000±10%
+  //check for valid time: must be 1600000±10% (~20ms)
   noise = ((int32_t)capturetime[datawriteindex] - (int32_t)1600000);
   if ((noise < 160000) && (noise > -160000))
   {

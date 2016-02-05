@@ -54,8 +54,8 @@ unsigned long thingspeakTime = 0; //used in main loop to control when data is se
 uint8_t SD_initialized = 0;
 uint8_t RTCsynctime = 0; //keep track of when to sync the RTC (once every few hours is enough)
 
-uint8_t wifiWatchdog;
-uint8_t sdWatchdog;
+uint16_t wifiWatchdog;
+uint16_t sdWatchdog;
 uint16_t signalWatchdog;
 
 volatile uint8_t toggle;
@@ -119,7 +119,7 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
       measurementdata[measurementindex].Timestamp--;
       measurementdata[measurementindex].milliseconds += 1000;
     }
-    else if (measurementdata[measurementindex].milliseconds > 1000)
+    else if (measurementdata[measurementindex].milliseconds >= 1000)
     {
       measurementdata[measurementindex].Timestamp++;
       measurementdata[measurementindex].milliseconds -= 1000;
@@ -136,6 +136,8 @@ void printMeasurement(int i)
   Serial.print((float)measurementdata[i].data / 100);
   Serial.print("\t");
   Serial.print((float) measurementdata[i].lowpassfilteredmeasurement / 100);
+  Serial.print("\t");
+  Serial.print(measurementdata[i].quality);
   Serial.print("\t@UTC ");
 
   unsigned long epoch = measurementdata[i].Timestamp - 2208988800UL;
@@ -222,6 +224,8 @@ void   checkButtonState(void)
   else buttonstatecounter = 0;
   pinMode(0, OUTPUT);
 
+  //Serial.println(buttonstatecounter);
+
   if (buttonstatecounter > 2000)
   {
     APtime = millis();
@@ -233,8 +237,8 @@ void   checkButtonState(void)
     if (APactive == 1)
     {
       //immediately update the LED color (may make one measurement value bad but thats ok)
-      LED.setPixelColor(0, LED.Color(10, 190, 200));
-      LED.show();
+      //LED.setPixelColor(0, LED.Color(10, 190, 200));
+      //LED.show();
 
       APactive = 2;
       if (WiFi.status() == WL_CONNECTED)
