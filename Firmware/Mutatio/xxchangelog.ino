@@ -6,7 +6,7 @@
  * -changed SD logfile naming to suit 3 digit days (i.e. 2016031)
  * 
  * 1.2.2016
- * -changed some timing constant int NTP_Time 
+ * -changed some timing constant in NTP_Time 
  * -Removed saving unsent data if not requested by configuration
  * -Bug in writeMeasurement() function corrected: >=1000 -> add 1 second (was >1000 -> add 1 second)
  * 
