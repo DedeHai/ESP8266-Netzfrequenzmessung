@@ -214,7 +214,7 @@ void loop() {
 
 
         //thingspeak sendout & heap display for debugging
-        
+        /*
                 if ((millis() - thingspeakTime > 15000) && (thingspeakFailed == 0) && WiFi.status() == WL_CONNECTED) //send this one out to thingspeak
                 {
                   // thingspeakFailed = updateThingspeak(measurementdata[i].data);
@@ -223,7 +223,7 @@ void loop() {
                   thingspeakTime = millis();
                   SDwriteLogfile("Test");
                 }
-        
+        */
 
 
 
