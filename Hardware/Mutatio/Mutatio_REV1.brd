@@ -7393,7 +7393,7 @@ Based on the following sources:
 <attribute name="VALUE" x="13.813" y="11.149" size="1.27" layer="27" rot="R90"/>
 </element>
 <element name="U$1" library="DS3231_Module" package="DS3231_MODULE_BIGCON" value="DS3231_MODULEBIG_CONNECTER_ONLY" x="22.8" y="20.4" smashed="yes" rot="MR90"/>
-<element name="C9" library="resistor" package="C0603" value="1uF" x="6.2" y="17.6" smashed="yes" rot="R90">
+<element name="C9" library="resistor" package="C0603" value="22uF" x="6.2" y="17.6" smashed="yes" rot="R90">
 <attribute name="NAME" x="7.089" y="20.038" size="0.8128" layer="25" font="vector" ratio="20" rot="R180"/>
 <attribute name="VALUE" x="8.232" y="16.711" size="1.27" layer="27" rot="R90"/>
 </element>

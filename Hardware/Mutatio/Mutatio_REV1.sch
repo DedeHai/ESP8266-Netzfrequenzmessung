@@ -9850,7 +9850,7 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 <part name="Q1" library="adafruit" deviceset="MOSFET-N" device="REFLOW"/>
 <part name="D1" library="diode" deviceset="DIODE-" device="MINIMELF"/>
 <part name="U$1" library="DS3231_Module" deviceset="DS3231_MODULE" device="BIG_CONNECTER_ONLY"/>
-<part name="C9" library="resistor" deviceset="C-EU" device="C0603" value="1uF"/>
+<part name="C9" library="resistor" deviceset="C-EU" device="C0603" value="22uF"/>
 <part name="R1" library="resistor" deviceset="R-EU_" device="R0603" value="51k"/>
 <part name="R2" library="resistor" deviceset="R-EU_" device="R0603" value="100k||51k"/>
 <part name="D2" library="diode" deviceset="DIODE-" device="MINIMELF"/>
