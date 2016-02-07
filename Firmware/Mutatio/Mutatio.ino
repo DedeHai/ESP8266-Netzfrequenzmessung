@@ -33,9 +33,7 @@
 #include "webpage.h"
 /*
    TODO:
-   -find reason for memory leak in server send function
-   -add non-DHCP control to web page and to wifi handling
-   -handle config.sendAllData correctly (currently not implemented)
+   -find reason for memory leak in server send function (seems to have disappeared, may come back again)
 */
 
 
@@ -46,7 +44,8 @@ double lowpassvalue = 0; //lowpass filtered frequency offset
 
 
 void setup() {
-
+ 
+  delay(200); //wait for power to stabilize
   Serial.begin(115200);
   memset(measurementdata, 0, sizeof(measurementdata));
   Serial.println("\r\nNetzfrequenzmesser V3");
@@ -78,10 +77,15 @@ void setup() {
 
   Serial.print("connecting to ");
   Serial.println(config.ssid);
+  WiFi.disconnect(true); //delete any old wifi configuration
   WiFi.mode(WIFI_STA);
-  //  WiFi.disconnect();
   //  delay(100);
   WiFi.begin(config.ssid.c_str(), config.password.c_str());
+  if (!config.useDHCP)
+  {
+    WiFi.config(IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3] ),  IPAddress(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3] ) , IPAddress(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3] ));
+  }
+
   // while (WiFi.status() != WL_CONNECTED) {
   //   delay(500);
   //   Serial.print(".");
@@ -110,6 +114,8 @@ void setup() {
   // plotly_init();
   // plotly_openStream();
 
+
+  config.useDHCP= true;
 }
 
 
@@ -129,15 +135,15 @@ void loop() {
       Serial.println("");
       Serial.println("WiFi connected");
       Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());
-      initOTAupdate();
+      Serial.println(WiFi.localIP());      
       wifiWatchdog = 0; //connected to wifi
       timeManager(1); //force time update from NTP server
+      initOTAupdate();
       SDwriteLogfile("WIFI connected");
     }
     ArduinoOTA.handle();
 
-    if (unsentSDData)
+    if (unsentSDData) //unsentSDData is only set if config.sendAllData is enabled
     {
       sendSDdataToServer();
     }
@@ -148,10 +154,10 @@ void loop() {
     {
       SDwriteLogfile("WIFI disconnected");
       WiFi.begin(config.ssid.c_str(), config.password.c_str());
-      //  if (!config.useDHCP)
-      // {
-      //  WiFi.config(IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3] ),  IPAddress(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3] ) , IPAddress(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3] ));
-      // }
+      if (!config.useDHCP)
+      {
+        WiFi.config(IPAddress(config.IP[0], config.IP[1], config.IP[2], config.IP[3] ),  IPAddress(config.Gateway[0], config.Gateway[1], config.Gateway[2], config.Gateway[3] ) , IPAddress(config.Netmask[0], config.Netmask[1], config.Netmask[2], config.Netmask[3] ));
+      }
       String state;
       if (WiFi.status() == 0) state = "Idle";
       else if (WiFi.status() == 1) state = "NO SSID AVAILBLE";
@@ -189,18 +195,36 @@ void loop() {
         int16_t colorindicator = measurementdata[i].data / 70;
         if (colorindicator > 85) colorindicator = 85;
         else if (colorindicator < -85) colorindicator = -85;
-        LEDcolor = hsv_to_rgb(85 - colorindicator, 255, 50);
+        LEDcolor = hsv_to_rgb(85 - colorindicator, 255, 20);
 
-        if ((millis() - thingspeakTime > 15000) && (thingspeakFailed == 0) && WiFi.status() == WL_CONNECTED) //send this one out to thingspeak
+        if (config.sendAllData)
         {
-          // thingspeakFailed = updateThingspeak(measurementdata[i].data);
-          Serial.print("Free heap:");
-          Serial.println(ESP.getFreeHeap(), DEC); //debug: check for memory leaks
-          thingspeakTime = millis();
-          // Serial.print(millis());
-          // Serial.print(" ");
-          //Serial.println(getMillisfromCycleCount());
+          if (unsentSDData == 0 && measurementdata[i].flag > 0 && (measurementdata[i].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0) //not yet sent and we have a wifi connection
+          {
+            if (sendMeasurementToServer(measurementdata[i]) == 0) //send successful?
+            {
+              measurementdata[latestindex].flag |= 0x08; //mark as sent out
+            }
+            else
+            {
+              serverFailed = 1; //try again next time
+            }
+          }
         }
+
+
+        //thingspeak sendout & heap display for debugging
+        
+                if ((millis() - thingspeakTime > 15000) && (thingspeakFailed == 0) && WiFi.status() == WL_CONNECTED) //send this one out to thingspeak
+                {
+                  // thingspeakFailed = updateThingspeak(measurementdata[i].data);
+                  Serial.print("Free heap:");
+                  Serial.println(ESP.getFreeHeap(), DEC); //debug: check for memory leaks
+                  thingspeakTime = millis();
+                  SDwriteLogfile("Test");
+                }
+        
+
 
 
       }
@@ -213,16 +237,11 @@ void loop() {
     }
 
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
-    if (unsentSDData == 0 && measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0) //not yet sent and we have a wifi connection
+    if (measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0 && !config.sendAllData) //not yet sent and we have a wifi connection
     {
-
       if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
       {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
-      }
-      else
-      {
-        serverFailed = 1; //try again next time
       }
     }
 

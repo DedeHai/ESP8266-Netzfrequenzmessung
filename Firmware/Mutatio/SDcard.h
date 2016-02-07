@@ -18,6 +18,8 @@ void SDwriteLogfile(String entry)
       getNowTime(&nowTime);
       uint32_t epoch  = nowTime.NTPtime - 2208988800UL;
       RTCtime.InitWithEpoch32Time(epoch);
+     // Serial.print("sd log using local time: ");
+     // Serial.println(String(RTCtime.Day()) + ". " + String(RTCtime.Month()) + ". " + String(RTCtime.Year()) + " " + String(RTCtime.Hour()) + ":" + String(RTCtime.Minute()) + ":" + String(RTCtime.Second()));
     }
 
     char filename[sizeof(sfilename)];
@@ -81,8 +83,8 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
     sprintf(daystring, "%03u", day); //fixed length number (002, 073, etc)
 
     String sfilename = String(year) + String(daystring) + ".txt";
-    Serial.print("Filename: ");
-    Serial.println(sfilename);
+    // Serial.print("Filename: ");
+    // Serial.println(sfilename);
 
 
     char filename[sizeof(sfilename)];
@@ -221,7 +223,7 @@ uint8_t SDinit(uint8_t pin)
   if (config.useSDcard)
   {
     //check if an unsent data file exists on the SD card
-    if (SD.exists((char *)unsentFilename.c_str()))
+    if (SD.exists((char *)unsentFilename.c_str()) && config.sendAllData)
     {
       unsentSDData = 1;
     }

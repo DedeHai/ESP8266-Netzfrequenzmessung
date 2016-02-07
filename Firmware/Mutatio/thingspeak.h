@@ -1,4 +1,5 @@
-
+//Thingspeak sendout, do not send more often than every 15 seconds
+//used for debugging purposes
 
 uint8_t updateThingspeak(int data)
 {

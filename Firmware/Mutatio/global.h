@@ -28,6 +28,10 @@ struct Config {
   bool useRTC; //make use of the RTC
   bool sendAllData; //send all data to server, not only the latest value, also sends SD backed up data if useSDcard is set
   int16_t FCPUerror;//error in CPU clock =  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)  -> clockoffset is negative if time offset is negative
+  String serveraddress; //address string (or ip string) of server to send the data to
+  uint16_t serverport;
+  String serverURI; //URI of the server to stream to, for example "/api/submit/meter1" 31 chars maximum
+  
 } config;
 
 
@@ -72,6 +76,7 @@ uint8_t unsentSDData = 0; //unsent data available on SD card?
 String unsentFilename = "unsent.txt";
 uint8_t APactive = 0;
 float localtimeoffset = 0; //low pass filtered offset in [ms] of local time compared to NTP time
+uint16_t NTPfailcounter = 0;
 
 Measurement measurementdata[MEASUREMENTVALUES];
 
@@ -224,7 +229,7 @@ void   checkButtonState(void)
   else buttonstatecounter = 0;
   pinMode(0, OUTPUT);
 
-  //Serial.println(buttonstatecounter);
+ // Serial.println(buttonstatecounter);
 
   if (buttonstatecounter > 2000)
   {
@@ -237,8 +242,8 @@ void   checkButtonState(void)
     if (APactive == 1)
     {
       //immediately update the LED color (may make one measurement value bad but thats ok)
-      //LED.setPixelColor(0, LED.Color(10, 190, 200));
-      //LED.show();
+      LED.setPixelColor(0, LED.Color(10, 190, 200));
+      LED.show();
 
       APactive = 2;
       if (WiFi.status() == WL_CONNECTED)

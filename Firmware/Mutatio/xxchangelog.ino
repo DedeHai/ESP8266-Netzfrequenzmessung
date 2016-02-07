@@ -16,4 +16,12 @@
  * 
  * 3.2.2016
  * -fixed bug in FCPU error eeprom writeback condition
+ * 
+ * 7.2.2016
+ * -commented out all the thingspeak test stuff 
+ * -added sendout server configuration handling to functions and eeprom (address, port and URI)
+ * -handle config.sendAllData correctly
+ * -add non-DHCP control to web page and to wifi handling
+ * -fixed nasty bug of complete lockout when invalid IP is assigned when not using DHCP (fixed by starting accesspoing if NTP server access fails 10 times in a row)
+ * -fixed bug in RTC functions to not make RTCTimeValid = true if RTC is not actually connected and config.useRTC is set
  */

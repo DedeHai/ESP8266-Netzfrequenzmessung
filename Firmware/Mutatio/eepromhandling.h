@@ -1,6 +1,11 @@
 
 void WriteStringToEEPROM(int beginaddress, String string)
 {
+  if (string.length() > 31) //allocated space in eeprom for each string is 32bytes: 31bytes for string, 1byte for terminating zero
+  {
+    return; //quit the function, the string cannot be longer than 31 chars (bad input)
+  }
+
   char  charBuf[string.length() + 1];
   string.toCharArray(charBuf, string.length() + 1);
   for (int t =  0; t < sizeof(charBuf); t++)
@@ -41,6 +46,8 @@ void WriteConfig()
   EEPROM.write(6, config.sendAllData);
   EEPROM.write(7, (uint8_t)(config.FCPUerror & 0xFF)); //low byte
   EEPROM.write(8, (uint8_t)((config.FCPUerror >> 8) & 0xFF)); //high byte
+  EEPROM.write(9, (uint8_t)(config.serverport & 0xFF)); //low byte
+  EEPROM.write(10, (uint8_t)((config.serverport >> 8) & 0xFF)); //high byte
 
   EEPROM.write(16, config.IP[0]);
   EEPROM.write(17, config.IP[1]);
@@ -62,6 +69,9 @@ void WriteConfig()
   WriteStringToEEPROM(96, config.password);
   WriteStringToEEPROM(128, config.DeviceName);
   WriteStringToEEPROM(160, config.DevicePW);
+  WriteStringToEEPROM(192, config.serveraddress);
+  WriteStringToEEPROM(224, config.serverURI);
+
 
   EEPROM.commit();
 }
@@ -80,6 +90,9 @@ boolean ReadConfig()
     int16_t lowbyte =   EEPROM.read(7);
     int16_t highbyte =   EEPROM.read(8);
     config.FCPUerror = (lowbyte & 0xFF) + ((highbyte << 8) & 0xFFFF);
+    lowbyte =   EEPROM.read(9);
+    highbyte =   EEPROM.read(10);
+    config.serverport = (lowbyte & 0xFF) + ((highbyte << 8) & 0xFFFF);
 
     config.IP[0] = EEPROM.read(16);
     config.IP[1] = EEPROM.read(17);
@@ -99,6 +112,9 @@ boolean ReadConfig()
     config.password = ReadStringFromEEPROM(96);
     config.DeviceName = ReadStringFromEEPROM(128);
     config.DevicePW = ReadStringFromEEPROM(160);
+    config.serveraddress =  ReadStringFromEEPROM(192);
+    config.serverURI =  ReadStringFromEEPROM(224);
+
 
     return true;
 
@@ -134,6 +150,13 @@ void writeDefaultConfig(void)
   config.useRTC = false;
   config.sendAllData = false;
   config.FCPUerror = 0;
+
+  config.serveraddress =  "api.netzsin.us";
+  config.serverport = 8080;
+  config.serverURI = "/api/submit/meter1";
+  
+
+  
   WriteConfig();
   Serial.println(F("Standard config applied"));
 }

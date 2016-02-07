@@ -105,6 +105,7 @@ int NTP_gettime(timeStruct* t)
     if ((highWord << 16 | lowWord) == 0)
     {
       Serial.println(F(" FAIL1"));
+      NTPfailcounter++;
       return -999;
     }
     //Serial.println(highWord << 16 | lowWord);
@@ -127,6 +128,7 @@ int NTP_gettime(timeStruct* t)
   else {
     udp.stop();
     Serial.println(F(" FAIL2"));
+    NTPfailcounter++;
     return -999;
   }
 
@@ -157,8 +159,7 @@ int getLocalTimeOffset(timeStruct* t)
 void timeManager(uint8_t forceTimeSync)
 {
   static uint32_t NTPupdate = 0; //timestamp on when to update from the NTP server
-  static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time
-  static uint16_t NTPfailcounter = 0;
+  static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time  
   timeStruct temptime; //time struct to get data from servers
   bool getNTPupdate = false; //if set true, a timestamp is requested from NTP server and evaluated
 
@@ -177,7 +178,7 @@ void timeManager(uint8_t forceTimeSync)
   //run the rest of the code only if the WIFI is available:
   if (WiFi.status() == WL_CONNECTED) {
 
-    if (localTimeValid == false || forceTimeSync)
+    if ((localTimeValid == false || forceTimeSync) && NTPfailcounter < 10)
     {
       uint8_t errorcounter = 0;
       int roundtripdelay;
@@ -195,16 +196,22 @@ void timeManager(uint8_t forceTimeSync)
         }
         else timevalidation = 2; //time we got is invalid for sure.
         errorcounter++;
-      } while ((roundtripdelay <= 0 || roundtripdelay > 150) && timevalidation > 1 && errorcounter < 100);
+        Serial.println(NTPfailcounter);
+      } while ((roundtripdelay <= 0 || roundtripdelay > 150) && timevalidation > 1 && errorcounter < 100 && NTPfailcounter < 10);
 
 
-      if (errorcounter < 100) {
+      if (errorcounter < 100 && NTPfailcounter < 10) {
         localTimeValid = true;
         localtimeoffset = 0;
         Serial.print(" Local Time Initialized: ");
         printUTCtime(localTime.NTPtime);
         updateRTCfromlocaltime();
         NTPupdate = millis();
+      }
+      else if(NTPfailcounter >= 10)
+      {
+        //internet is not available, start the accesspoint to allow reconfiguration
+        APactive = 1;
       }
       else if (RTCTimeValid == true)
       {
@@ -302,7 +309,7 @@ void timeManager(uint8_t forceTimeSync)
             }
             String cpuerroroutput = "CPU frequency error is " + String(config.FCPUerror);
             Serial.println(cpuerroroutput);
-            SDwriteLogfile(cpuerroroutput);
+            SDwriteLogfile(cpuerroroutput); //log to sd card
           }
 
           NTPfailcounter = 0;

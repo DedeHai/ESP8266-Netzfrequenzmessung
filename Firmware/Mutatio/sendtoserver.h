@@ -6,31 +6,30 @@ uint8_t sendStringToServer(String jsonstring)
   //checks if we can already send more data. if we can, check if data needs to be sent.
   //then format the data and send it out through the ether
   
-  if (!client.connect("192.168.1.12", 8080)) {
+  if (!client.connect(config.serveraddress.c_str(), config.serverport)) {
     Serial.println(F("Server connect failed"));
     client.flush();
     client.stop();
     return -1;
   }
 
- 
  // Serial.print("Sendoutdata: ");
  // Serial.println(jsonstring);
 
   String msglength = String(jsonstring.length());
  
-  String header = "";
-  header += "POST /api/submit/meter1 HTTP/1.1\r\n";
-  header += "Host: http://92.168.1.12:8080/\r\n" ;
+  String header = "POST "+  config.serverURI + " HTTP/1.1\r\n";
+  header += "Host: http://" + config.serveraddress + ":" + String(config.serverport) + "/\r\n";
   header += "X-API-KEY: ";
-  header += "secretkey1";
-  header += "\r\n";
-  header += "Content-Type: application/json\r\n";
+  header += config.APIkey; // "secretkey1";
+  header += "\r\nContent-Type: application/json\r\n";
   header += "Connection: close\r\n";
   header += "Content-Length: ";
   header += msglength;
   header += "\r\n\r\n";
 
+ // Serial.print(header);
+ // Serial.print(jsonstring);
   client.print(header);
   client.print(jsonstring);
 
@@ -44,7 +43,7 @@ uint8_t sendStringToServer(String jsonstring)
   // Read all the lines of the reply from server and print them to Serial
   while (client.available()) {
     String line = client.readStringUntil('\r');
-    // Serial.println(line);
+    // Serial.println(line); //uncomment this line to see servers response on serial
     if (line.indexOf("200 OK") != -1)
     {
       // Serial.println(F("Server OK"));

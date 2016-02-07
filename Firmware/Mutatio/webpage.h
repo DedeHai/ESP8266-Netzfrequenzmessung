@@ -47,7 +47,7 @@ void sendPage(void)
 
   if (server.args() > 0 )  // Save Settings
   {
-    uint8_t i;
+    uint8_t i, j;
     //reset all boolean data (is set true if checked value is received)
     config.useDHCP = false;
     config.useSDcard = false;
@@ -56,11 +56,55 @@ void sendPage(void)
 
     for (i = 0; i < server.args(); i++ ) {
 
+
       if (server.argName(i) == "SSID") config.ssid = urldecode(server.arg(i));
       if (server.argName(i) == "PASS") config.password = urldecode(server.arg(i));
+
+      //ip, gateway and subnet extraction from input strings:
+      int8_t pos = 0;
+      if (server.argName(i) == "IP")
+      {
+        for (j = 0; j < 4; j++ ) //a valid ip is in the form "192.168.1.2", look for this pattern
+        {
+          String number = server.arg(i).substring(pos);    // get  characters (toInt ignores non integer values)
+          config.IP[j] = (uint8_t)(number.toInt() & 0xFF);
+          pos = server.arg(i).indexOf(".",pos);
+          if (pos < 0) break; //no dot found, this is an invalid address or we are done here
+          pos++; //start reading after the "."
+        }
+      }
+      pos = 0;
+      if (server.argName(i) == "NM")
+      {
+        for (j = 0; j < 4; j++ ) //a valid ip is in the form "192.168.1.2", look for this pattern
+        {
+          String number = server.arg(i).substring(pos);    // get  characters (toInt ignores non integer values)
+          config.Netmask[j] = (uint8_t)(number.toInt() & 0xFF);
+          pos = server.arg(i).indexOf(".", pos);
+          if (pos < 0) break; //no dot found, this is an invalid address or we are done here
+          pos++; //start reading after the "."
+        }
+      }
+      pos = 0;
+      if (server.argName(i) == "GW")
+      {
+        for (j = 0; j < 4; j++ ) //a valid ip is in the form "192.168.1.2", look for this pattern
+        {
+          String number = server.arg(i).substring(pos);    // get characters (toInt ignores non integer values)
+          config.Gateway[j] = (uint8_t)(number.toInt() & 0xFF);
+          pos = server.arg(i).indexOf(".",pos);
+          if (pos < 0) break; //no dot found, this is an invalid address or we are done here
+          pos++; //start reading after the "."
+        }
+      }
       if (server.argName(i) == "API_KEY")  config.APIkey = server.arg(i);
       if (server.argName(i) == "AP_NAME") config.DeviceName = urldecode(server.arg(i));
       if (server.argName(i) == "AP_PASS") config.DevicePW = urldecode(server.arg(i));
+      if (server.argName(i) == "S_URI") config.serverURI = urldecode(server.arg(i)); //server uri
+      if (server.argName(i) == "S_ADD") config.serveraddress = urldecode(server.arg(i)); //server address
+      if (server.argName(i) == "S_PORT") config.serverport = server.arg(i).toInt();  //server port
+
+
       if (server.argName(i) == "DHCP") config.useDHCP = true;
       if (server.argName(i) == "USE_SD") config.useSDcard = true;
       if (server.argName(i) == "USE_RTC") config.useRTC = true;
@@ -97,35 +141,65 @@ void sendPage(void)
   pageContent += "<INPUT TYPE=\"CHECKBOX\" NAME=\"DHCP\" VALUE=\"1\" ";
   if (config.useDHCP) pageContent += " CHECKED>";
   else pageContent += ">";
-  pageContent += " Use DHCP<BR>\n";
+  pageContent += " Use DHCP<BR><BR>\n";
 
-  //todo: add fields for IP and stuff if DHCP is not used
-  /*
-    EEPROM.write(16, config.IP[0]);
-    EEPROM.write(17, config.IP[1]);
-    EEPROM.write(18, config.IP[2]);
-    EEPROM.write(19, config.IP[3]);
+  if (!config.useDHCP)
+  {
+    pageContent += "<b>Use fixd IP:</b><BR>\n";
 
-    EEPROM.write(20, config.Netmask[0]);
-    EEPROM.write(21, config.Netmask[1]);
-    EEPROM.write(22, config.Netmask[2]);
-    EEPROM.write(23, config.Netmask[3]);
+    pageContent += "<b>";
+    pageContent += "</b> <input type=\"text\" size=\"15\" maxlength=\"15\" name=\"IP\" value=\"";
+    pageContent += String(config.IP[0]);
+    pageContent += ".";
+    pageContent += String(config.IP[1]);
+    pageContent += ".";
+    pageContent += String(config.IP[2]);
+    pageContent += ".";
+    pageContent += String(config.IP[3]);
+    pageContent += "\"> IP<BR>\n";
 
-    EEPROM.write(24, config.Gateway[0]);
-    EEPROM.write(25, config.Gateway[1]);
-    EEPROM.write(26, config.Gateway[2]);
-    EEPROM.write(27, config.Gateway[3]);
-  */
+    pageContent += "<b>";
+    pageContent += "</b> <input type=\"text\" size=\"15\" maxlength=\"15\" name=\"NM\" value=\"";
+    pageContent += String(config.Netmask[0]);
+    pageContent += ".";
+    pageContent += String(config.Netmask[1]);
+    pageContent += ".";
+    pageContent += String(config.Netmask[2]);
+    pageContent += ".";
+    pageContent += String(config.Netmask[3]);
+    pageContent += "\"> Netmask<BR>\n";
+
+    pageContent += "<b>";
+    pageContent += "</b> <input type=\"text\" size=\"15\" maxlength=\"15\" name=\"GW\" value=\"";
+    pageContent += String(config.Gateway[0]);
+    pageContent += ".";
+    pageContent += String(config.Gateway[1]);
+    pageContent += ".";
+    pageContent += String(config.Gateway[2]);
+    pageContent += ".";
+    pageContent += String(config.Gateway[3]);
+    pageContent += "\"> Gateway<BR>\n";
+  }
 
   pageContent += "<HR>"; //horizontal line-----------------------------------------------------------------------
 
   // pageContent += "<form action=\"\" method=\"GET\">\n";
   pageContent += "<b>Mutatio Configuration</b><BR><BR>\n";
 
+
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"31\" name=\"S_ADD\" value=\"";
+  pageContent += String(config.serveraddress);
+  pageContent += "\">:";
+  pageContent += "<input type=\"text\" size=\"4\" maxlength=\"4\" name=\"S_PORT\" value=\"";
+  pageContent += String(config.serverport);
+  pageContent += "\">  Server address:port\n <BR>\n";
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"30\" name=\"S_URI\" value=\"";
+  pageContent += config.serverURI;
+  pageContent += "\"> Server URI<BR>\n";
+
   pageContent += "<input type=\"text\" size=\"28\" maxlength=\"16\" name=\"API_KEY\" value=\"";
   pageContent += config.APIkey;
   pageContent += "\"> Server API Key <BR>\n";
-  // pageContent += "<input type=\"submit\" value=\"Send\"><BR></form>";
 
   pageContent += "<input type=\"text\" size=\"28\" maxlength=\"32\" name=\"AP_NAME\" value=\"";
   pageContent += config.DeviceName;

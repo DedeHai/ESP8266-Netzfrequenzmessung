@@ -85,7 +85,17 @@ void updateRTCfromlocaltime(void)
     Serial.print(":");
     Serial.println(RTCtime.Second());
 
-    RTCTimeValid = true;
+    //read back the time from the RTC to check if it is valid
+    RTCtime  = RTC.GetDateTime();
+
+    if (RTCtime.Epoch32Time() == epoch) //check if RTC was set properly
+    {
+      RTCTimeValid = true;
+    }
+    else
+    {
+      RTCTimeValid = false;
+    }
   }
 
 }
@@ -102,12 +112,12 @@ void RTCinit(void)
     RTC.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
     RTC.SetIsRunning(true); //start the RTC in case it was not running (prevents infinite loop)
     RtcDateTime RTCtime  = RTC.GetDateTime();
-    if (RTCtime.Epoch32Time() > 1452874314) //check if RTC could be valid
+
+    if (RTCtime.Epoch32Time() > 1452874314 && RTC.GetIsRunning()) //check if RTC could be valid
     {
       RTCTimeValid = true;
     }
     else   RTCTimeValid = false;
-
   }
   else  RTCTimeValid = false;
 }
