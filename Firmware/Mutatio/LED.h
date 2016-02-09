@@ -36,7 +36,7 @@ void updateLED(void)
           LEDcolor.g = 150;
           LEDcolor.b = 0;
         }
-        if (sdWatchdog > 0 ) //blink blue
+        if (sdWatchdog > 0 && config.useSDcard) //blink blue
         {
           LEDcolor.r = 0;
           LEDcolor.g = 0;

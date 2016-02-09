@@ -26,6 +26,8 @@
   -fixed nasty bug of complete lockout when invalid IP is assigned when not using DHCP (fixed by starting accesspoing if NTP server access fails 10 times in a row)
   -fixed bug in RTC functions to not make RTCTimeValid = true if RTC is not actually connected and config.useRTC is set
  
- 
+ 9.2.2016
+ -fixed bug in LED blink function to not blink blue if SD is not present
+ -fixed bug in FCPU measurement when offset is high
  
  */

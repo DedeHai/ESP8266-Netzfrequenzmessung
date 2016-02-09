@@ -310,6 +310,7 @@ void timeManager(uint8_t forceTimeSync)
             String cpuerroroutput = "CPU frequency error is " + String(config.FCPUerror);
             Serial.println(cpuerroroutput);
             SDwriteLogfile(cpuerroroutput); //log to sd card
+            fastupdate = REQUESTSTOAVERAGE; //do a fastupdate to make sure time is in sync (prevents high FCPU offsets caused by lowpassfilter lag)
           }
 
           NTPfailcounter = 0;
