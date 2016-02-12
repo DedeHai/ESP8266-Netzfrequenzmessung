@@ -2,12 +2,12 @@
 
 uint8_t updatelocaltimefromRTC(void)
 {
-  if (config.useRTC)
+  if (config.useRTC && RTCTimeValid == true)
   {
     Serial.println(F("Updating from RTC"));
     RtcDateTime RTCtime  = RTC.GetDateTime();
     RtcDateTime RTCtemp  = RTC.GetDateTime();
-    if (RTCtime.Epoch32Time() > 1452874314) //check if RTC could be valid
+    if (RTCtime.Epoch32Time() > 1452874314) //check if RTC is still valid (may have been wrongified by wrong NTP update)
     {
       uint16_t timeout = 0;
       //wait for the RTC time to roll over by one second:
@@ -40,7 +40,7 @@ uint8_t updatelocaltimefromRTC(void)
 
 void updateRTCfromlocaltime(void)
 {
-  if (config.useRTC)
+  if (config.useRTC && localTimeValid == true)
   {
     Serial.println(F("Synchronizing RTC with NTP"));
     RtcDateTime RTCtime  = RTC.GetDateTime();

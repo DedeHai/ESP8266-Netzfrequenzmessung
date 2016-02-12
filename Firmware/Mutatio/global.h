@@ -100,7 +100,7 @@ void setCyclecountmillis(void)
 void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
 {
   uint32_t milliseconds = getMillisfromCycleCount();
-  uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + localTime.milliseconds + (milliseconds - localTime.millistimestamp);
+  uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + (localTime.milliseconds  - (int)localtimeoffset) + (milliseconds - localTime.millistimestamp);
   t->NTPtime = nowmilliseconds / 1000;
   t->milliseconds =  nowmilliseconds - (uint64_t)t->NTPtime * 1000;
   t->millistimestamp = milliseconds;
@@ -118,7 +118,7 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
     measurementdata[measurementindex].data = value;
     measurementdata[measurementindex].quality = gooddatapoints;
     measurementdata[measurementindex].Timestamp = nowTime.NTPtime;
-    measurementdata[measurementindex].milliseconds = nowTime.milliseconds - (int)localtimeoffset;
+    measurementdata[measurementindex].milliseconds = nowTime.milliseconds;
     if ( measurementdata[measurementindex].milliseconds < 0)
     {
       measurementdata[measurementindex].Timestamp--;
