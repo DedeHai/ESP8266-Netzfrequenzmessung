@@ -1,6 +1,6 @@
 
 #define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time
-
+#define ALLOWEDROUNDTRIPDELAY 30
 
 //ntp stuff
 IPAddress timeServerIP; // pool.ntp.org NTP server address
@@ -197,7 +197,7 @@ void timeManager(uint8_t forceTimeSync)
         else timevalidation = 2; //time we got is invalid for sure.
         errorcounter++;
         Serial.println(NTPfailcounter);
-      } while ((roundtripdelay <= 0 || roundtripdelay > 150) && timevalidation > 1 && errorcounter < 100 && NTPfailcounter < 10);
+      } while ((roundtripdelay <= 0 || roundtripdelay > ALLOWEDROUNDTRIPDELAY*5) && timevalidation > 1 && errorcounter < 100 && NTPfailcounter < 10);
 
 
       if (errorcounter < 100 && NTPfailcounter < 10) {
@@ -247,13 +247,13 @@ void timeManager(uint8_t forceTimeSync)
     {
       int roundtripdelay = NTP_gettime(&temptime);
       //  Serial.println(roundtripdelay);
-      if (roundtripdelay > 0 && roundtripdelay < 30) //successfully got the time and it is of good quality
+      if (roundtripdelay > 0 && roundtripdelay < ALLOWEDROUNDTRIPDELAY) //successfully got the time and it is of good quality
       {
         int newoffset = getLocalTimeOffset(&temptime);
         if (fastupdate < 0) //this is not a fastupdated, offset must be small, check if it is
         {
           int offsetdeviation = localtimeoffset - newoffset;
-          if ( offsetdeviation > 10 || offsetdeviation < -10) //10ms deviation is way too big for an accurate NTP reading (usually is within ±5ms)
+          if ( offsetdeviation > ALLOWEDROUNDTRIPDELAY/3 || offsetdeviation < -ALLOWEDROUNDTRIPDELAY/3) //10ms deviation is way too big for an accurate NTP reading (usually is within ±5ms)
           {
             newoffset = localtimeoffset; //ignore this value in the filter below
             NTPfailcounter += 10; //if this happens repeatedly, local clock is out of sync for some reason, trigger a sync error and do a fastupdate            

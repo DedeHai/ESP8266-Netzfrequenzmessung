@@ -28,6 +28,6 @@
  
  9.2.2016
  -fixed bug in LED blink function to not blink blue if SD is not present
- -fixed bug in FCPU measurement when offset is high
+ -fixed inaccuracy bug in FCPU measurement when offset is high
  
  */
