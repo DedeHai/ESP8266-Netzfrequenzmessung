@@ -150,22 +150,7 @@ int getLocalTimeOffset(timeStruct* t)
 
 void syncFCPU(void)
 {
-  /*
-     es muss die annahme gelten, dass der NTC sync genau ist. ansonsten hat man keine solide zeitbasis.
-     für ausnahmefälle kann man auch den RTC zur synchronisation nehmen, das sollte aber nur per firmware
-     update möglich sein. am besten mit einem #define und dann hier abfragen.
-     fürs NTP update: ein timestamp der localtime nehmen, diese wird mit dem NTP permanent abgeglichen
-     indem der offset beim getNowTime schon abgezogen wird.
-     um zu prüfen:
-     schauen ob millis einen overflow hatte
-     dann entsprechend vom timestamp die zeit über millis berechnen
-     abweichung von getNowTime berechnen und daraus FCPU error ausrechnen
 
-     beim RTC:
-     dasselbe, aber mit der RTC time.
-
-
-  */
   //synchronize FCPU with NTP time (or RTC)
 
   static uint8_t syncinprogress = 0;

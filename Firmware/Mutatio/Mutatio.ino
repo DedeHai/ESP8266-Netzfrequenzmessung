@@ -56,7 +56,6 @@ void setup() {
     writeDefaultConfig();
   }
 
-writeDefaultConfig();
   pinMode(PIXEL_PIN, OUTPUT);
   LED.begin();
   LEDcolor.r = 100;
