@@ -25,7 +25,7 @@ WIFI not available: NO SSID AVAILBLE
 ```
 Next the Mutatio needs to be configured. This is done through the setup page. To access it, press and hold the 'Flash' button for three seconds, then release it. The LED color turns purple indicating that the accesspoint is ready. Connect your computer's WiFi to the accesspoint named 'Mutatio-XXXX' with the default password '11111111'. Open any web browser and go to '192.168.4.1'. The config page will show. Enter your routers SSID and password. As a default, DHCP is used to obtain an IP. For a static IP you can also disable DHCP and enter the connection addresses manually.
 The second part of the page lets you configure the Mutatio hardware and server settings. Put checks if you are using an SD card or the real time clock (RTC).
-Once the Mutatio is connected to your local WiFi the configuration page can also be accessed by entering the Muatio's local IP address: check the serial output for the IP or assign a static IP.
+Once the Mutatio is connected to your local WiFi the configuration page can also be accessed by entering the Muatio's local IP address: check the serial output for the IP or assign a static IP. If you have mDNS support on your computer (install apple's bonjour service) you can also access it through the address 'http://mutatio.local/'.
 
 ![settings](/Hardware/Mutatio/Pictures/configpage.PNG)
 
