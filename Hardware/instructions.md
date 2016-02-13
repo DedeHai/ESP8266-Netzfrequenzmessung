@@ -26,6 +26,7 @@ WIFI not available: NO SSID AVAILBLE
 Next the Mutatio needs to be configured. This is done through the setup page. To access it, press and hold the 'Flash' button for three seconds, then release it. The LED color turns purple indicating that the accesspoint is ready. Connect your computer's WiFi to the accesspoint named 'Mutatio-XXXX' with the default password '11111111'. Open any web browser and go to '192.168.4.1'. The config page will show. Enter your routers SSID and password. As a default, DHCP is used to obtain an IP. For a static IP you can also disable DHCP and enter the connection addresses manually.
 The second part of the page lets you configure the Mutatio hardware and server settings.
 Once the Mutatio is connected to your local WiFi the configuration page can also be accessed by entering the Muatio's IP local IP address: check the serial output for the IP or assign a static IP.
+
 ![settings](/Hardware/Mutatio/Pictures/configpage.PNG)
 
 ##LED status colors
@@ -41,7 +42,7 @@ The LED colors indicate the status:
 ######Frequency Signal
 To check proper operation use the serial monitor. If the frequency signal is available and the time is properly set (either from the RTC or from an NTP server) there will be one measurement value displayed each second. It looks like this
 ```
-todo: insert line here
+-24.17  -24.08  75      @UTC 16:29:08.447  
 ```
 The first number is the frequency offset calculated. The second value is the moving average over all measurement values, including all raw values. This should be very close or even identical to the first value on a good signal. The third value is a quality indicator: it shows how many measurement points out of 100 values are regarded as valid: to calculate the frequency 100 values are measured and averaged. Outliers are discarded as noise. If this number is lower than 90 the input signal is too noisy. Try a shorter antenna and bring it as close as possible to the power cable: a 15cm antenna wrapped around the cable works nicely but the best signal is obtained from the onboard antenna.
 
