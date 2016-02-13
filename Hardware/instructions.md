@@ -39,14 +39,14 @@ The LED colors indicate the status:
 - during normal operation the LED indicates the grid frequency: from blue (-60mHz) to green (0mHz) to red (+60mHz)
 
 ##Problem solving
-######Frequency Signal
+####Frequency Signal
 To check proper operation use the serial monitor. If the frequency signal is available and the time is properly set (either from the RTC or from an NTP server) there will be one measurement value displayed each second. It looks like this
 ```
 -24.17  -24.08  75      @UTC 16:29:08.447  
 ```
-The first number is the frequency offset calculated. The second value is the moving average over all measurement values, including all raw values. This should be very close or even identical to the first value on a good signal. The third value is a quality indicator: it shows how many measurement points out of 100 values are regarded as valid: to calculate the frequency 100 values are measured and averaged. Outliers are discarded as noise. If this number is lower than 90 the input signal is too noisy. Try a shorter antenna and bring it as close as possible to the power cable: a 15cm antenna wrapped around the cable works nicely but the best signal is obtained from the onboard antenna.
+The first number is the frequency offset calculated. The second value is the moving average over all measurement values, including all raw values. This should be very close or even identical to the first value on a good signal. The third value is a quality indicator: it shows how many measurement points out of 100 values are regarded as valid: to calculate the frequency 100 values are measured and averaged. Outliers are discarded as noise. If this number is lower than 50 the input signal is too noisy. Try a shorter antenna and bring it as close as possible to the power cable: a 15cm antenna wrapped around the cable works nicely but the best signal is obtained from the onboard antenna. Anything above 80 will give good values but if the antenna is properly tuned values above 95 can be achieved.
 
-######Time
+####Time
 The time is constantly checked against a NTP server ('pool.ntp.org' by default). If the connection is too slow (average ping > 30ms) an accurate time sync is not possible. The accepted latancy can be changed in the firmware but it is not recommended since it leads to time jitter. To do so change 
 ````
 #define ALLOWEDROUNDTRIPDELAY 30
@@ -61,7 +61,7 @@ also in in NTP_Time.h
 
 The RTC is automatically synchronized with the NTP time every few hours. The RTC has a time keeping accuracy of ±2ppm.
 
-######Server 
+####Server 
 The data is sent out to a server every second. The server address (or IP) and the URI as well as the API-key can be changed on the configuration page.
 
 There is an option on the configuration page to send out all values instead of always sending the latest one only. On a slow connection this can lead to a data jam since all unsent data is first kept in RAM and then saved to the SD card (if available, data is discarded otherwise). The Mutatio tries to sendout the oldest value first and works its way to the latest value as fast as possible. **NOTE: This mode is currently not supported by the defluxiod server software.**
