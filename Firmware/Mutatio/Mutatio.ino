@@ -48,9 +48,7 @@ void setup() {
   delay(200); //wait for power to stabilize
   Serial.begin(115200);
   memset(measurementdata, 0, sizeof(measurementdata));
-  Serial.println("\r\nNetzfrequenzmesser V3");
-
-
+  Serial.println(F("\r\nMutatio grid frequency tracker, part of netzsin.us project"));
 
   EEPROM.begin(256); //eeprom emulation on flash, the ESP8266 has no actual EERPOM
   if (!ReadConfig())
@@ -58,8 +56,7 @@ void setup() {
     writeDefaultConfig();
   }
 
-  Serial.println("Measured CPU Frequency error is: " + String(config.FCPUerror)); //for debug
-
+writeDefaultConfig();
   pinMode(PIXEL_PIN, OUTPUT);
   LED.begin();
   LEDcolor.r = 100;

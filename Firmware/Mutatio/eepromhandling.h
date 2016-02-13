@@ -139,8 +139,7 @@ void writeDefaultConfig(void)
   //Use MAC address to generate a uique ID like "Mutatio-7F89"
   uint8_t mac[WL_MAC_ADDR_LENGTH];
   WiFi.softAPmacAddress(mac);
-  String macID = String(mac[WL_MAC_ADDR_LENGTH - 2], HEX) +
-                 String(mac[WL_MAC_ADDR_LENGTH - 1], HEX);
+  String macID = String(mac[WL_MAC_ADDR_LENGTH - 1], HEX);
   macID.toUpperCase();
   config.DeviceName = "Mutatio-" + macID;
   config.DevicePW = "11111111";

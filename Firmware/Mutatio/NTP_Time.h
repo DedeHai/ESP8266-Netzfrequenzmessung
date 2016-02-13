@@ -1,10 +1,11 @@
 
-#define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time
-#define ALLOWEDROUNDTRIPDELAY 30
+#define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time during fastupdate
+#define ALLOWEDROUNDTRIPDELAY 30 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
+//#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
 
 //ntp stuff
 IPAddress timeServerIP; // pool.ntp.org NTP server address
-const char* ntpServerName =  "pool.ntp.org";//"time.nist.gov";
+const char* ntpServerName = "pool.ntp.org";//"time.nist.gov";//"north-america.pool.ntp.org"
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
 WiFiUDP udp; // A UDP instance to let us send and receive packets over UDP
@@ -145,6 +146,134 @@ int getLocalTimeOffset(timeStruct* t)
   int32_t millisdifference = int32_t(nowmilliseconds - NTPmilliseconds);
 
   return millisdifference;
+}
+
+void syncFCPU(void)
+{
+  /*
+     es muss die annahme gelten, dass der NTC sync genau ist. ansonsten hat man keine solide zeitbasis.
+     für ausnahmefälle kann man auch den RTC zur synchronisation nehmen, das sollte aber nur per firmware
+     update möglich sein. am besten mit einem #define und dann hier abfragen.
+     fürs NTP update: ein timestamp der localtime nehmen, diese wird mit dem NTP permanent abgeglichen
+     indem der offset beim getNowTime schon abgezogen wird.
+     um zu prüfen:
+     schauen ob millis einen overflow hatte
+     dann entsprechend vom timestamp die zeit über millis berechnen
+     abweichung von getNowTime berechnen und daraus FCPU error ausrechnen
+
+     beim RTC:
+     dasselbe, aber mit der RTC time.
+
+
+  */
+  //synchronize FCPU with NTP time (or RTC)
+
+  static uint8_t syncinprogress = 0;
+  static timeStruct FCPU_timestamp; //time struct of localtime
+  static uint32_t synctime;
+  if (syncinprogress == 0)
+  {
+    //start new sync, save current time:
+    Serial.println(F("FCPU timesync started"));
+#ifdef USE_RTC_FOR_CPUSYNC //use RTC
+    RtcDateTime RTCtime  = RTC.GetDateTime();
+    RtcDateTime RTCtemp  = RTC.GetDateTime();
+    uint16_t timeout = 0;
+    //wait for the RTC time to roll over by one second:
+    while (RTCtime.Second() == RTCtemp.Second() && timeout < 1000)
+    {
+      delay(1);
+      RTCtime  = RTC.GetDateTime();
+      timeout++;
+    }
+    if (timeout >= 1000) return;
+
+    //convert to NTP time:
+    uint32_t NTPtime = RTCtime.Epoch32Time() + 2208988800UL;
+    //now set the timestamp:
+    FCPU_timestamp.NTPtime = NTPtime;
+    FCPU_timestamp.milliseconds = 0;
+    FCPU_timestamp.millistimestamp = millis();
+#else //use NTP 
+    getNowTime(&FCPU_timestamp);
+#endif
+    syncinprogress = 1;
+    synctime = millis();
+    RTCsynctime++;
+  }
+  else
+  {
+    if (millis() - synctime > 1800000) //check FCPU sync after 30 minutes
+    {
+      if (FCPU_timestamp.millistimestamp < millis()) //check if millis overflowed, start a new sync if it did (timestamps are not valid)
+      {
+        //check deviation of millis() counter to absolute time
+        timeStruct nowtimestamp;
+#ifdef USE_RTC_FOR_CPUSYNC //use RTC
+
+        RtcDateTime RTCtime  = RTC.GetDateTime();
+        RtcDateTime RTCtemp  = RTC.GetDateTime();
+        uint16_t timeout = 0;
+        //wait for the RTC time to roll over by one second:
+        while (RTCtime.Second() == RTCtemp.Second() && timeout < 1000)
+        {
+          delay(1);
+          RTCtime  = RTC.GetDateTime();
+          timeout++;
+        }
+        if (timeout >= 1000) return;
+
+        //convert to NTP time:
+        uint32_t NTPtime = RTCtime.Epoch32Time() + 2208988800UL;
+        //now set the timestamp:
+        nowtimestamp.NTPtime = NTPtime;
+        nowtimestamp.milliseconds = 0;
+        nowtimestamp.millistimestamp = millis();
+#else //use NTP 
+        getNowTime(&nowtimestamp);
+#endif
+
+        //we now have two timestamps, current time and time at last sync start
+        //calculate the cpu now time again from millis and sync timestamp and check
+        //deviation from real time
+        uint64_t nowmilliseconds = (uint64_t)nowtimestamp.NTPtime * 1000 + nowtimestamp.milliseconds + (millis() - nowtimestamp.millistimestamp);
+        uint64_t syncmilliseconds = (uint64_t)FCPU_timestamp.NTPtime * 1000 + FCPU_timestamp.milliseconds + (millis() - FCPU_timestamp.millistimestamp);
+        int32_t timedifference = syncmilliseconds - nowmilliseconds;
+        if (timedifference < 1000 && timedifference > -1000) //if time deviation is more than a second, something went wrong (usually is a few milliseconds)
+        {
+          int32_t newFCPUerror = ((double)timedifference * FCPU) / ((nowtimestamp.NTPtime - FCPU_timestamp.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
+          Serial.print(F("FCPU timesync finished. Timedeviation: "));
+          Serial.print(timedifference);
+          Serial.print(F("ms in a time period of "));
+          Serial.print(nowtimestamp.NTPtime - FCPU_timestamp.NTPtime);
+          Serial.println(F("s"));
+          config.FCPUerror = newFCPUerror;
+          //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
+          if (newFCPUerror - config.FCPUerror < 40 || newFCPUerror - config.FCPUerror  > -40)
+          {
+            WriteConfig(); //write back to flash ("eeprom")
+          }
+          String cpuerroroutput = "CPU frequency error is " + String(config.FCPUerror);
+          Serial.println(cpuerroroutput);
+          SDwriteLogfile(cpuerroroutput); //log to sd card
+        }
+        else
+        {
+          Serial.print("something went wrong in FCPU time keeping"); // !!!debug
+          Serial.println(timedifference); //!!!debug
+        }
+        syncinprogress = 0; //done, start a new sync
+      }
+      else syncinprogress = 0; //error, start a new sync
+    }
+  }
+
+  if (RTCsynctime > 10) //update RTC from localtime every few hours
+  {
+    updateRTCfromlocaltime();
+    RTCsynctime = 0;
+  }
+
 
 }
 
@@ -159,7 +288,7 @@ int getLocalTimeOffset(timeStruct* t)
 void timeManager(uint8_t forceTimeSync)
 {
   static uint32_t NTPupdate = 0; //timestamp on when to update from the NTP server
-  static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time  
+  static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time
   timeStruct temptime; //time struct to get data from servers
   bool getNTPupdate = false; //if set true, a timestamp is requested from NTP server and evaluated
 
@@ -197,7 +326,7 @@ void timeManager(uint8_t forceTimeSync)
         else timevalidation = 2; //time we got is invalid for sure.
         errorcounter++;
         Serial.println(NTPfailcounter);
-      } while ((roundtripdelay <= 0 || roundtripdelay > ALLOWEDROUNDTRIPDELAY*5) && timevalidation > 1 && errorcounter < 100 && NTPfailcounter < 10);
+      } while ((roundtripdelay <= 0 || roundtripdelay > ALLOWEDROUNDTRIPDELAY * 5) && timevalidation > 1 && errorcounter < 100 && NTPfailcounter < 10);
 
 
       if (errorcounter < 100 && NTPfailcounter < 10) {
@@ -205,10 +334,10 @@ void timeManager(uint8_t forceTimeSync)
         localtimeoffset = 0;
         Serial.print(" Local Time Initialized: ");
         printUTCtime(localTime.NTPtime);
-        updateRTCfromlocaltime();
+        //updateRTCfromlocaltime();
         NTPupdate = millis();
       }
-      else if(NTPfailcounter >= 10)
+      else if (NTPfailcounter >= 10)
       {
         //internet is not available, start the accesspoint to allow reconfiguration
         APactive = 1;
@@ -222,8 +351,6 @@ void timeManager(uint8_t forceTimeSync)
       }
       return; //do not run the code below if server access was already attempted
     }
-
-
 
     if (fastupdate > 0)
     {
@@ -241,6 +368,7 @@ void timeManager(uint8_t forceTimeSync)
         getNTPupdate = true;
       }
       fastupdate = -1; //prevents underflow in decrement below
+      syncFCPU();  //only synchronize FCPU if no fastupdate is going on
     }
 
     if (getNTPupdate)
@@ -253,10 +381,10 @@ void timeManager(uint8_t forceTimeSync)
         if (fastupdate < 0) //this is not a fastupdated, offset must be small, check if it is
         {
           int offsetdeviation = localtimeoffset - newoffset;
-          if ( offsetdeviation > ALLOWEDROUNDTRIPDELAY/3 || offsetdeviation < -ALLOWEDROUNDTRIPDELAY/3) //10ms deviation is way too big for an accurate NTP reading (usually is within ±5ms)
+          if ( offsetdeviation > ALLOWEDROUNDTRIPDELAY / 3 || offsetdeviation < -ALLOWEDROUNDTRIPDELAY / 3) //10ms deviation is way too big for an accurate NTP reading (usually is within ±5ms)
           {
             newoffset = localtimeoffset; //ignore this value in the filter below
-            NTPfailcounter += 10; //if this happens repeatedly, local clock is out of sync for some reason, trigger a sync error and do a fastupdate            
+            NTPfailcounter += 10; //if this happens repeatedly, local clock is out of sync for some reason, trigger a sync error and do a fastupdate
             NTPupdate = millis() - 59800;//get another value soon:
           }
         }
@@ -267,10 +395,9 @@ void timeManager(uint8_t forceTimeSync)
         Serial.println("\t(" + String(newoffset) + ")");
         fastupdate--;
 
-        if (fastupdate == 0 || localtimeoffset > 10 || localtimeoffset < -10) //the offset reached 10ms or fastupdate request, update local clock
+        if (fastupdate == 0 || localtimeoffset > ALLOWEDROUNDTRIPDELAY / 3 || localtimeoffset < -ALLOWEDROUNDTRIPDELAY / 3) //the offset is high or fastupdate request, update local clock
         {
-          //todo: this algorithm is not very rigid. better do a fast update every 30 minutes and calculate cpu offset from that?
-          int newFCPUerror = ((double)localtimeoffset * FCPU) / ((temptime.NTPtime - localTime.NTPtime) * 1000); //  (offset in [ms]) * FCPU / (time in [ms] over which offset was measured)
+
           //set the new found (filtered) timeoffset:
           if (localtimeoffset < 0) localtimeoffset -= 0.5; //round to nearest integer when converting to int (not really necessary here)
           else  localtimeoffset += 0.5;
@@ -292,27 +419,6 @@ void timeManager(uint8_t forceTimeSync)
           localtimeoffset = 0;
           interrupts(); //reactivate the interrupts
           Serial.println("Local Time adjusted");
-
-          RTCsynctime++; //check RTC synchronization once in a while
-          if (RTCsynctime > 24) //do not update RTC during fastupdate
-          {
-            updateRTCfromlocaltime();
-            RTCsynctime = 0;
-          }
-          if (fastupdate < 0) //not a fastupdate request, save the FCPU error
-          {
-            config.FCPUerror = newFCPUerror;
-            //if error is much different from eeprom saved one, update it in eeprom (prevents flash wearing if not done too often)
-            if (newFCPUerror - config.FCPUerror < 40 || newFCPUerror - config.FCPUerror  > -40)
-            {             
-              WriteConfig(); //write back to flash ("eeprom")
-            }
-            String cpuerroroutput = "CPU frequency error is " + String(config.FCPUerror);
-            Serial.println(cpuerroroutput);
-            SDwriteLogfile(cpuerroroutput); //log to sd card
-            fastupdate = REQUESTSTOAVERAGE; //do a fastupdate to make sure time is in sync (prevents high FCPU offsets caused by lowpassfilter lag)
-          }
-
           NTPfailcounter = 0;
         }
       }
@@ -337,6 +443,9 @@ void timeManager(uint8_t forceTimeSync)
         localTimeValid = true;
       }
     }
+#ifdef USE_RTC_FOR_CPUSYNC
+    syncFCPU();
+#endif
   }
   if (ESP.getCycleCount() - lastcapture < (230000)) //check that there is low chance of upcoming interrupt during the cyclecount millis update
   {
