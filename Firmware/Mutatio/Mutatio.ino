@@ -44,7 +44,7 @@ double lowpassvalue = 0; //lowpass filtered frequency offset
 
 
 void setup() {
- 
+
   delay(200); //wait for power to stabilize
   Serial.begin(115200);
   memset(measurementdata, 0, sizeof(measurementdata));
@@ -64,8 +64,10 @@ void setup() {
   LED.setPixelColor(0, LED.Color(LEDcolor.r, LEDcolor.g, LEDcolor.b));
   LED.show(); // Initialize LED color
 
-  RTCinit();
-
+  if (config.useRTC)
+  {
+    RTCinit();
+  }
 
   wifiWatchdog = 1; //wifi not connected
   sdWatchdog = 1; //SD not initialized
@@ -86,10 +88,11 @@ void setup() {
   //   delay(500);
   //   Serial.print(".");
   // }
-
-  SDinit(SD_CSN_PIN);
-  SDwriteLogfile("Boot");
-
+  if (config.useSDcard)
+  {
+    SDinit(SD_CSN_PIN);
+    SDwriteLogfile("Boot");
+  }
 
 
   server.on ( "/", sendPage); //send the config page
@@ -97,21 +100,14 @@ void setup() {
   server.begin(); //start webserver
 
 
-  //  LEDcolor.r = 0;
-  //  LEDcolor.g = 80;
-  //  LEDcolor.b = 1;
-  //  LED.setPixelColor(0, LED.Color(LEDcolor.r, LEDcolor.g, LEDcolor.b));
-  //  LED.show(); // Initialize LED color
-
   pinMode(MEASUREMENTPIN, INPUT); //is the default, just making sure
   attachInterrupt(MEASUREMENTPIN, pininterrupt, CHANGE); //trigger both rising and falling
 
 
-  // plotly_init();
-  // plotly_openStream();
+ 
 
 
-  config.useDHCP= true;
+  config.useDHCP = true;
 }
 
 
@@ -131,11 +127,14 @@ void loop() {
       Serial.println("");
       Serial.println("WiFi connected");
       Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());      
+      Serial.println(WiFi.localIP());
       wifiWatchdog = 0; //connected to wifi
       timeManager(1); //force time update from NTP server
       initOTAupdate();
       SDwriteLogfile("WIFI connected");
+
+      plotly_init(false); //!!! comment this line if not using plotly server
+      
     }
     ArduinoOTA.handle();
 
@@ -175,17 +174,20 @@ void loop() {
     uint16_t j;
     uint8_t thingspeakFailed = 0;
     uint8_t serverFailed = 0;
-    uint16_t latestindex = 0;
-    //lowpassvalue = ((double)frequencyoffset *  Filterconstant) + (lowpassvalue  * ((double)1.0 - Filterconstant));
-    for (j = datareadindex; j < datareadindex + MEASUREMENTVALUES; j++)
+    uint16_t latestindex = datareadindex;
+
+    for (j = 0; j < MEASUREMENTVALUES; j++)
     {
-      if (measurementdata[i].flag > 0 && (measurementdata[i].flag & 0x02) == 0) //not yet printed
+      if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x02) == 0)) //not yet printed
       {
         latestindex = i;
         measurementdata[i].flag |= 0x02; //data printed, can now be saved to SD
         printMeasurement(i);
-
-        // plotly_plot(measurementdata[i]);
+        
+        if(sdWatchdog >0) //not using SD or SD failed 
+        {
+          datareadindex = i; //update the read index (is usually done in SD function after saving the value)
+        }
 
         //make LED color green if 50.0Hz, red if too high, blue if too low
         int16_t colorindicator = measurementdata[i].data / 70;
@@ -235,39 +237,42 @@ void loop() {
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
     if (measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0 && !config.sendAllData) //not yet sent and we have a wifi connection
     {
-      if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
-      {
+      plotly_plot(measurementdata[latestindex]);
+      /*
+        if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
+        {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
-      }
+        }*/
     }
 
     issampling = true;
   }
 
 
-
-  if (SD_initialized) //card is initialized //note: tried to add analogRead here, it makes the wifi disconnect very frequently, seems to be a known issue
+  if (config.useSDcard)
   {
-    if ((MEASUREMENTVALUES - SDreadycounter) < 30) //buffer is getting full, better save it to SD
+    if (SD_initialized) //card is initialized //note: tried to add analogRead here, it makes the wifi disconnect very frequently, seems to be a known issue
     {
-      if (SDwriteMeasurements(SDreadycounter) != 0) //write failed, re-initialize the SD card
+      if ((MEASUREMENTVALUES - SDreadycounter) < 70) //buffer is getting full, better save it to SD
       {
-        if (SDinit(SD_CSN_PIN) != 0)
+        if (SDwriteMeasurements(SDreadycounter) != 0) //write failed, re-initialize the SD card
         {
-          yield();
-          Serial.println(F("PANIC, NO SD CARD AVAILABLE!"));
-          sdWatchdog = 1;
-          //todo: inform the user by email, sms or fax
+          if (SDinit(SD_CSN_PIN) != 0)
+          {
+            yield();
+            Serial.println(F("PANIC, NO SD CARD AVAILABLE!"));
+            sdWatchdog = 1;
+            //todo: inform the user by email, sms or fax
+          }
         }
       }
     }
+    else if (config.useSDcard && sdWatchdog == 1)
+    {
+      SDinit(SD_CSN_PIN);
+    }
+    else sdWatchdog++;
   }
-  else if (config.useSDcard && sdWatchdog == 1)
-  {
-    SDinit(SD_CSN_PIN);
-  }
-  else sdWatchdog++;
-
   timeManager(0);
   yield();
   server.handleClient();

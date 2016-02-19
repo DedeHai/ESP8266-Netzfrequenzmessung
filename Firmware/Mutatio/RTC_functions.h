@@ -105,7 +105,7 @@ void RTCinit(void)
 {
   if (config.useRTC)
   {
-    Serial.println(F("RTC init"));
+    Serial.print(F("RTC init..."));
     Wire.begin(); //default pins: 4 & 5
     RTC.Begin();
     RTC.Enable32kHzPin(false);
@@ -116,8 +116,13 @@ void RTCinit(void)
     if (RTCtime.Epoch32Time() > 1452874314 && RTC.GetIsRunning()) //check if RTC could be valid
     {
       RTCTimeValid = true;
+    Serial.println(F("OK"));  
     }
-    else   RTCTimeValid = false;
+    else
+    {
+      Serial.println(F("RTC Failed"));  
+      RTCTimeValid = false;
+    }
   }
   else  RTCTimeValid = false;
 }

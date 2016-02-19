@@ -273,6 +273,7 @@ void syncFCPU(void)
 void timeManager(uint8_t forceTimeSync)
 {
   static uint32_t NTPupdate = 0; //timestamp on when to update from the NTP server
+  static uint32_t cyclcountupdate = 0; //timestamp for cyclecount update enforcement
   static int fastupdate = REQUESTSTOAVERAGE; //update NTP quicker at startup to calibrate the time
   timeStruct temptime; //time struct to get data from servers
   bool getNTPupdate = false; //if set true, a timestamp is requested from NTP server and evaluated
@@ -432,9 +433,11 @@ void timeManager(uint8_t forceTimeSync)
     syncFCPU();
 #endif
   }
-  if (ESP.getCycleCount() - lastcapture < (230000)) //check that there is low chance of upcoming interrupt during the cyclecount millis update
+  //the cyclecount overflows ever 53 seconds, must make sure an update happens before that!
+  if (ESP.getCycleCount() - lastcapture < (230000) || (millis() - cyclcountupdate > 40000)) //check that there is low chance of upcoming interrupt during the cyclecount millis update
   {
     setCyclecountmillis();
+    cyclcountupdate = millis();
   }
 }
 

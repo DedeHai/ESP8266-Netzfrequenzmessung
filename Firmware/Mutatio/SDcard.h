@@ -18,8 +18,8 @@ void SDwriteLogfile(String entry)
       getNowTime(&nowTime);
       uint32_t epoch  = nowTime.NTPtime - 2208988800UL;
       RTCtime.InitWithEpoch32Time(epoch);
-     // Serial.print("sd log using local time: ");
-     // Serial.println(String(RTCtime.Day()) + ". " + String(RTCtime.Month()) + ". " + String(RTCtime.Year()) + " " + String(RTCtime.Hour()) + ":" + String(RTCtime.Minute()) + ":" + String(RTCtime.Second()));
+      // Serial.print("sd log using local time: ");
+      // Serial.println(String(RTCtime.Day()) + ". " + String(RTCtime.Month()) + ". " + String(RTCtime.Year()) + " " + String(RTCtime.Hour()) + ":" + String(RTCtime.Minute()) + ":" + String(RTCtime.Second()));
     }
 
     char filename[sizeof(sfilename)];
@@ -104,7 +104,7 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
       sdWatchdog = 0;
       if (config.sendAllData)
       {
-        for (j = datareadindex; j < (uint16_t)count + datareadindex; j++) //check first if any data is pending to be sent to server
+        for (j = 0; j < count; j++) //check first if any data is pending to be sent to server
         {
           if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x08) == 0) ) //data not yet sent to server
           {
@@ -115,12 +115,12 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
           if (i >= (MEASUREMENTVALUES)) i = 0; //continue at beginning if end of buffer reached
         }
       }
+      i = datareadindex;
 
-
-      for (j = datareadindex; j < (uint16_t)count + datareadindex; j++) //go through all available measurements and write them to SD
+      for (j = 0; j < count; j++) //go through all available measurements and write them to SD
       {
         yield();
-        if (measurementdata[i].flag > 0 && ((measurementdata[i].flag & 0x04) == 0)) //data not yet written to SD
+        if (measurementdata[i].flag > 1 && ((measurementdata[i].flag & 0x04) == 0)) //data printed but not yet written to SD
         {
 
           if (config.sendAllData)
@@ -140,11 +140,12 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
           String datapoint;
           datapoint = dtostrf(((float)measurementdata[i].data / 100000) + 50, 10, 5, temparr);
           // datapoint.trim(); //trim whitespaces
-
+          char milliseconds[5];
+          sprintf(milliseconds, "%03u", measurementdata[i].milliseconds); //need a fixed length, easiest using sprintf
 
           String datatoWrite = String(measurementdata[i].Timestamp - 2208988800UL); //the UTC timestamp in seconds (Epoch Unix time format)
           datatoWrite += ".";
-          datatoWrite += String(measurementdata[i].milliseconds); //the timestamps milliseconds
+          datatoWrite += String(milliseconds); //the timestamps milliseconds
           datatoWrite += "\t";
           datatoWrite += datapoint;
           datatoWrite += "\t";
@@ -171,7 +172,7 @@ uint8_t SDwriteMeasurements(uint8_t count) //writes unwritten measurements to SD
           }
         }
         i++;
-        if (i >= (MEASUREMENTVALUES)) i = 0; //continue at beginning if end of buffer reached
+        if (i >= MEASUREMENTVALUES) i = 0; //continue at beginning if end of buffer reached
       }
       unsentDataFile.close();
       dataFile.close();
@@ -235,7 +236,6 @@ uint8_t SDinit(uint8_t pin)
     if (analogRead(A0) < 50)
     {
       if (!SD.begin(pin)) {
-        sdWatchdog = 0;
         yield();
         Serial.println(F("Card failed, rebooting..."));
         delay(100);

@@ -55,6 +55,7 @@ timeStruct localTime; //the global local time variables holding current NTP time
 bool localTimeValid = false; //is true once the local time contains valid time data (to prevent corrupted measurement data)
 bool RTCTimeValid = false; //is set true after setting the RTC
 unsigned long thingspeakTime = 0; //used in main loop to control when data is sent out (must not do it faster than every 15 seconds)
+unsigned long plotlyTime = 0; //used in main loop to control when data is sent out (must not do it faster than every 15 seconds)
 uint8_t SD_initialized = 0;
 uint8_t RTCsynctime = 0; //keep track of when to sync the RTC (once every few hours is enough)
 
@@ -100,7 +101,7 @@ void setCyclecountmillis(void)
 void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
 {
   uint32_t milliseconds = getMillisfromCycleCount();
-  uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + localTime.milliseconds + (milliseconds - localTime.millistimestamp);
+  uint64_t nowmilliseconds = (uint64_t)localTime.NTPtime * 1000 + (localTime.milliseconds  - (int)localtimeoffset) + (milliseconds - localTime.millistimestamp);
   t->NTPtime = nowmilliseconds / 1000;
   t->milliseconds =  nowmilliseconds - (uint64_t)t->NTPtime * 1000;
   t->millistimestamp = milliseconds;
@@ -118,7 +119,7 @@ void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  in
     measurementdata[measurementindex].data = value;
     measurementdata[measurementindex].quality = gooddatapoints;
     measurementdata[measurementindex].Timestamp = nowTime.NTPtime;
-    measurementdata[measurementindex].milliseconds = nowTime.milliseconds - (int)localtimeoffset;
+    measurementdata[measurementindex].milliseconds = nowTime.milliseconds;
     if ( measurementdata[measurementindex].milliseconds < 0)
     {
       measurementdata[measurementindex].Timestamp--;
@@ -145,7 +146,7 @@ void printMeasurement(int i)
   Serial.print(measurementdata[i].quality);
   Serial.print("\t@UTC ");
 
-  unsigned long epoch = measurementdata[i].Timestamp - 2208988800UL;
+  uint32_t epoch = measurementdata[i].Timestamp - 2208988800UL;
 
   // print the hour, minute and second:
   Serial.print((epoch  % 86400L) / 3600); // print the hour (86400 equals secs per day)
@@ -166,7 +167,11 @@ void printMeasurement(int i)
     Serial.print('0');
   if (measurementdata[i].milliseconds < 10)
     Serial.print('0');
-  Serial.println(measurementdata[i].milliseconds);
+  Serial.print(measurementdata[i].milliseconds);
+   Serial.print("\t");
+    char milliseconds[5];
+  sprintf(milliseconds, "%03u", measurementdata[i].milliseconds); //need a fixed length, easiest using sprintf
+   Serial.println(String(epoch) + "." + String(milliseconds));
 }
 
 String getJsonFromMeasurement(Measurement datastruct)
@@ -179,6 +184,7 @@ String getJsonFromMeasurement(Measurement datastruct)
   char milliseconds[5];
   sprintf(milliseconds, "%03u", datastruct.milliseconds); //need a fixed length, easiest using sprintf
   uint32_t epoch  = datastruct.Timestamp - 2208988800UL;
+  
   /*
     RtcDateTime timeelements;
     timeelements.InitWithEpoch32Time(epoch); //converte epoch to date, month etc.

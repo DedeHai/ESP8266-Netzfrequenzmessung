@@ -29,5 +29,8 @@
  9.2.2016
  -fixed bug in LED blink function to not blink blue if SD is not present
  -fixed inaccuracy bug in FCPU measurement when offset is high
+
+ 19.2.2016
+ -improved plot.ly capability to detect disconnection and added proper timestamps
  
  */
