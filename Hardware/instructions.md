@@ -45,6 +45,9 @@ To check proper operation use the serial monitor. If the frequency signal is ava
 -24.17  -24.08  75      @UTC 16:29:08.447  
 ```
 The first number is the frequency offset calculated. The second value is the moving average over all measurement values, including all raw values. This should be very close or even identical to the first value on a good signal. The third value is a quality indicator: it shows how many measurement points out of 100 values are regarded as valid: to calculate the frequency 100 values are measured and averaged. Outliers are discarded as noise. If this number is lower than 50 the input signal is too noisy. Try a shorter antenna and bring it as close as possible to the power cable: a 15cm antenna wrapped around the cable works nicely but the best signal is obtained from the onboard antenna. Anything above 80 will give good values but if the antenna is properly tuned values above 95 can be achieved.
+A good and stable power supply is *very* important. A USB from a PC or a Server is usually a good choice. A USB power supply can also work, but it needs to be of good quality. Here is a graph showing the measurement with different powersupplies:
+
+![signal vs powersupply](/Hardware/Mutatio/Pictures/powersupplyquality.png)
 
 ####Time
 The time is constantly checked against a NTP server ('pool.ntp.org' by default). If the connection is too slow (average ping > 30ms) an accurate time sync is not possible. The accepted latancy can be changed in the firmware but it is not recommended since it leads to time jitter. To do so change 
