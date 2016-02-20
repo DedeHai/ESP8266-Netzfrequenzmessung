@@ -143,7 +143,7 @@ void plotly_plot(Measurement datapoint)
   else
   {
    // Serial.println("disconnected");
-     plotly_init(false);
+     plotly_openStream(); //open the stream to plotly
   }
 
 
