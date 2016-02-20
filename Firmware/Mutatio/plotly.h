@@ -1,9 +1,9 @@
 
 unsigned long fibonacci_ = 1; //fibonacci folge, wird erzeugt für immer längere delays.
 
-#define TRACETOKEN "j5ulyjdumm"
-#define PLOTLYAPIKEY "m5c3u89daq"
-#define PLOTLYUSER "dedehai"
+#define TRACETOKEN "a64me5b8da"
+#define PLOTLYAPIKEY "zpqjn0imzi"
+#define PLOTLYUSER "damianOpto"
 
 
 void plotly_openStream() {
@@ -57,8 +57,8 @@ uint8_t plotly_init(bool createnewfile) { //if createnewfile is true, the file i
   datastr += "&args=[{\"x\": [], \"y\": [], \"name\": \"Frequenzabweichung\"";
   datastr += ", \"type\": \"scatter\", \"stream\": {\"token\": \"" ;
   datastr += TRACETOKEN ;
-  datastr += "\", \"maxpoints\": 1000}}]";
-  datastr += "&kwargs={\"filename\": \"Netzfrequenz\",\"fileopt\":";
+  datastr += "\", \"maxpoints\": 10000}}]";
+  datastr += "&kwargs={\"filename\": \"Netz_ElHierro\",\"fileopt\":";
   if (createnewfile)
   {
     datastr += "\"overwrite\"";  //extend or overwrite for fileopt

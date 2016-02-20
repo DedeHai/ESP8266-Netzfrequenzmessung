@@ -1,7 +1,7 @@
 
 #define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time during fastupdate
-#define ALLOWEDROUNDTRIPDELAY 30 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
-//#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
+#define ALLOWEDROUNDTRIPDELAY 600 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
+#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
 
 //ntp stuff
 IPAddress timeServerIP; // pool.ntp.org NTP server address

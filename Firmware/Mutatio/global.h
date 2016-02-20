@@ -2,10 +2,10 @@
 
 //if CPU clock is running too slow (i.e. lower than 80MHz) the internal time will also run slow and the time offset to the NTP server will become negative
 #define FCPU 80000000UL //CPU clock frequency (will be corrected with clock offset in calculation)
-#define NUMBEROFCAPTURES 100 //number of values to capture from frequency pin input before generating a measurement (100 per second)
+#define NUMBEROFCAPTURES 50 //number of values to capture from frequency pin input before generating a measurement (100 per second)
 #define MEASUREMENTVALUES 120 //array with this many values is created (255 max!)
 #define MEASUREMENTPIN 15 //pin which is used as clock input
-#define PIXEL_PIN 0
+#define PIXEL_PIN 0 //color pixel LED output pin
 #define ACCESSPOINTIMEOUT 300000 //timeout for accesspoint mode
 RtcDS3231 RTC; //DS3231 RTC clock on I2C
 ESP8266WebServer server(80); // The Webserver
