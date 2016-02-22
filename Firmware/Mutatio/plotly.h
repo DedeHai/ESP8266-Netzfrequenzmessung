@@ -57,7 +57,7 @@ uint8_t plotly_init(bool createnewfile) { //if createnewfile is true, the file i
   datastr += "&args=[{\"x\": [], \"y\": [], \"name\": \"Frequenzabweichung\"";
   datastr += ", \"type\": \"scatter\", \"stream\": {\"token\": \"" ;
   datastr += TRACETOKEN ;
-  datastr += "\", \"maxpoints\": 1000}}]";
+  datastr += "\", \"maxpoints\": 5000}}]";
   datastr += "&kwargs={\"filename\": \"Netzfrequenz\",\"fileopt\":";
   if (createnewfile)
   {

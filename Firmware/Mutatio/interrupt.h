@@ -1,4 +1,4 @@
-#define ALLOWEDNOISE 550 //accepted noise in ticks 
+#define ALLOWEDNOISE 700 //accepted noise in ticks 
 /*
   void ICACHE_RAM_ATTR pininterrupt() {
 

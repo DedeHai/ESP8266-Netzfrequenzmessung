@@ -96,6 +96,7 @@ void setup() {
 
 
   server.on ( "/", sendPage); //send the config page
+  server.on ( "/SD.htm", sendSDPage); //send the config page
   server.onNotFound(handleNotFound);//handle page not found
   server.begin(); //start webserver
 
@@ -133,7 +134,7 @@ void loop() {
       initOTAupdate();
       SDwriteLogfile("WIFI connected");
 
-      plotly_init(false); //!!! comment this line if not using plotly server
+      plotly_init(true); //!!! comment this line if not using plotly server
       
     }
     ArduinoOTA.handle();

@@ -32,5 +32,7 @@
 
  19.2.2016
  -improved plot.ly capability to detect disconnection and added proper timestamps
- 
+
+ 21.2.2016
+ -add SD readout to webpage, SD card can now be accessed over WiFi
  */

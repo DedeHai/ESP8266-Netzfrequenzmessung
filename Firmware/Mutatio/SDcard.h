@@ -249,6 +249,7 @@ uint8_t SDinit(uint8_t pin)
         Serial.println(F("SD card initialized."));
         File dir = SD.open("/");
         printDirectory(dir, 0);
+        dir.close();
         return 0;
       }
     }

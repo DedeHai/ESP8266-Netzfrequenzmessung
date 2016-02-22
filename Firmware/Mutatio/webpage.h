@@ -68,7 +68,7 @@ void sendPage(void)
         {
           String number = server.arg(i).substring(pos);    // get  characters (toInt ignores non integer values)
           config.IP[j] = (uint8_t)(number.toInt() & 0xFF);
-          pos = server.arg(i).indexOf(".",pos);
+          pos = server.arg(i).indexOf(".", pos);
           if (pos < 0) break; //no dot found, this is an invalid address or we are done here
           pos++; //start reading after the "."
         }
@@ -92,7 +92,7 @@ void sendPage(void)
         {
           String number = server.arg(i).substring(pos);    // get characters (toInt ignores non integer values)
           config.Gateway[j] = (uint8_t)(number.toInt() & 0xFF);
-          pos = server.arg(i).indexOf(".",pos);
+          pos = server.arg(i).indexOf(".", pos);
           if (pos < 0) break; //no dot found, this is an invalid address or we are done here
           pos++; //start reading after the "."
         }
@@ -230,15 +230,101 @@ void sendPage(void)
   pageContent += "<input type=\"submit\" value=\"Send\"><BR></form>";
   pageContent += "<HR>"; //horizontal line-----------------------------------------------------------------------
 
-
+  if (config.useSDcard && SD_initialized)
+  {
+    pageContent += "<a href = \"SD.htm\">Show SD content</a>";
+  }
   //todo: add status of node here (SDcard, RTC, Signal)
 
   server.send ( 200, "text/html", pageContent );
+}
+
+
+void sendSDPage() //send contents of root directory (no subdirectories supported)
+{
+  String pageContent = "<HTML><HEAD> <title>Mutatio SD content</title></HEAD>\n";
+  pageContent += "<BODY bgcolor=\"#00ccff\" text=\"#000000\">";
+  pageContent += "<FONT size=\"6\" FACE=\"Verdana\">\n<BR><b>SD content</b><BR><BR></font>";
+
+  File dir = SD.open("/");
+  dir.rewindDirectory();
+  while (true) {
+    File entry =  dir.openNextFile();
+    if (!entry) {
+      // no more files
+      break;
+    }
+    if (entry.isDirectory()) {
+      continue; //skip subdirectories
+    }
+    pageContent += "<a href=\"";
+    pageContent += entry.name();
+    pageContent += "\">";
+    pageContent += entry.name();
+    pageContent += "</a>";
+    pageContent += "&emsp;&emsp;";
+    pageContent += entry.size();
+    pageContent += "B<BR>";
+    entry.close();
+  }
+  dir.close();
+  pageContent += "<HR>"; //horizontal line-----------------------------------------------------------------------
+
+  server.send ( 200, "text / html", pageContent );
 
 }
 
+
+String getContentType(String filename) {
+  if (server.hasArg("download")) return "application / octet - stream";
+  else if (filename.endsWith(".htm")) return "text / html";
+  else if (filename.endsWith(".html")) return "text / html";
+  else if (filename.endsWith(".css")) return "text / css";
+  else if (filename.endsWith(".js")) return "application / javascript";
+  else if (filename.endsWith(".png")) return "image / png";
+  else if (filename.endsWith(".gif")) return "image / gif";
+  else if (filename.endsWith(".jpg")) return "image / jpeg";
+  else if (filename.endsWith(".ico")) return "image / x - icon";
+  else if (filename.endsWith(".xml")) return "text / xml";
+  else if (filename.endsWith(".pdf")) return "application / x - pdf";
+  else if (filename.endsWith(".zip")) return "application / x - zip";
+  else if (filename.endsWith(".gz")) return "application / x - gzip";
+  return "text / plain";
+}
+
+bool loadFromSdCard(String path) {
+  File dataFile = SD.open(path.c_str());
+  if (dataFile.isDirectory()) {
+    path += " / index.htm";
+    dataFile.close();
+    dataFile = SD.open(path.c_str());
+  }
+  if (!dataFile)
+  {
+    path += ".gz"; //try again with gzipped version
+    dataFile = SD.open(path.c_str());
+  }
+  if (!dataFile)
+  {
+    Serial.println("File Not Found: " + path);
+    return false;
+  }
+  String dataType = getContentType(path);
+  if (server.streamFile(dataFile, dataType) != dataFile.size()) {
+    Serial.println(F("Sent less data than expected!"));
+  }
+  dataFile.close();
+  Serial.println("File sent: " + path);
+  return true;
+}
+
 void handleNotFound() {
-  String message = "404 Not Found:";
+  if (config.useSDcard && SD_initialized)
+  {
+    if (loadFromSdCard(server.uri())) return;
+  }
+  //file not found on SD, return 404
+  String message = "404 Not Found\n\n";
   message += "URI: ";
   message += server.uri();
   message += "\nMethod: ";
@@ -247,10 +333,9 @@ void handleNotFound() {
   message += server.args();
   message += "\n";
   for (uint8_t i = 0; i < server.args(); i++) {
-    message += " NAME:" + server.argName(i) + "\n VALUE:" + server.arg(i) + "\n";
+    message += " NAME: " + server.argName(i) + "\n VALUE: " + server.arg(i) + "\n";
   }
-  server.send(404, "text/plain", message);
+  server.send(404, "text / plain", message);
   Serial.println(message);
 }
-
 
