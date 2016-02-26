@@ -104,7 +104,7 @@ void setup() {
   attachInterrupt(MEASUREMENTPIN, pininterrupt, CHANGE); //trigger both rising and falling
 
 
- 
+
 
 
   config.useDHCP = true;
@@ -133,8 +133,8 @@ void loop() {
       initOTAupdate();
       SDwriteLogfile("WIFI connected");
 
-      plotly_init(false); //!!! comment this line if not using plotly server
-      
+      //plotly_init(false); //!!! comment this line if not using plotly server
+
     }
     ArduinoOTA.handle();
 
@@ -183,8 +183,8 @@ void loop() {
         latestindex = i;
         measurementdata[i].flag |= 0x02; //data printed, can now be saved to SD
         printMeasurement(i);
-        
-        if(sdWatchdog >0) //not using SD or SD failed 
+
+        if (sdWatchdog > 0) //not using SD or SD failed
         {
           datareadindex = i; //update the read index (is usually done in SD function after saving the value)
         }
@@ -237,12 +237,11 @@ void loop() {
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
     if (measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0 && !config.sendAllData) //not yet sent and we have a wifi connection
     {
-      plotly_plot(measurementdata[latestindex]);
-      /*
-        if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
-        {
+      //plotly_plot(measurementdata[latestindex]); //send data to plotly
+      if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
+      {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
-        }*/
+      }
     }
 
     issampling = true;
@@ -273,6 +272,7 @@ void loop() {
     }
     else sdWatchdog++;
   }
+  
   timeManager(0);
   yield();
   server.handleClient();
