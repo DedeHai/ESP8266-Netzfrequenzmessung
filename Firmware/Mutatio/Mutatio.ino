@@ -134,7 +134,7 @@ void loop() {
       initOTAupdate();
       SDwriteLogfile("WIFI connected");
 
-      plotly_init(true); //!!! comment this line if not using plotly server
+     // plotly_init(true); //!!! comment this line if not using plotly server
       
     }
     ArduinoOTA.handle();
@@ -238,12 +238,12 @@ void loop() {
     //send only the latest measurement (put in above for loop to send them all, change latestindex to i
     if (measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0 && !config.sendAllData) //not yet sent and we have a wifi connection
     {
-      plotly_plot(measurementdata[latestindex]);
-      /*
+      //plotly_plot(measurementdata[latestindex]);
+      
         if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
         {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
-        }*/
+        }
     }
 
     issampling = true;
