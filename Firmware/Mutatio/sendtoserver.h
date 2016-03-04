@@ -19,7 +19,7 @@ uint8_t sendStringToServer(String jsonstring)
   String msglength = String(jsonstring.length());
  
   String header = "POST "+  config.serverURI + " HTTP/1.1\r\n";
-  header += "Host: http://" + config.serveraddress + ":" + String(config.serverport) + "/\r\n";
+  header += "Host: " + config.serveraddress + ":" + String(config.serverport) + "\r\n";
   header += "User-Agent: Mutatio/1.0\r\n";
   header += "X-API-KEY: ";
   header += config.APIkey; // "secretkey1";
