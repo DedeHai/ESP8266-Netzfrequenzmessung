@@ -105,8 +105,6 @@ void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
   t->NTPtime = nowmilliseconds / 1000;
   t->milliseconds =  nowmilliseconds - (uint64_t)t->NTPtime * 1000;
   t->millistimestamp = milliseconds;
-
-
 }
 
 void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  int16_t lowpassvalue) //!!!lowpassvalue for debug

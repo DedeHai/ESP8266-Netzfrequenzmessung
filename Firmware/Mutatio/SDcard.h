@@ -25,7 +25,12 @@ void SDwriteLogfile(String entry)
     char filename[sizeof(sfilename)];
     sfilename.toCharArray(filename, sizeof(filename));
 
-    //todo: check if the file exists, write a header if it does not
+    if (SD.exists(filename) == false) //file does not exist, write a header
+    {
+      File dataFile = SD.open(filename, FILE_WRITE); //create the file
+      dataFile.println("Mutatio Logfile");
+      dataFile.close();
+    }
     yield();
     // open the file
     File dataFile = SD.open(filename, FILE_WRITE);
@@ -33,7 +38,7 @@ void SDwriteLogfile(String entry)
       sdWatchdog = 0;
       String datatoWrite = String(RTCtime.Day()) + ". " + String(RTCtime.Month()) + ". " + String(RTCtime.Year()) + " " + String(RTCtime.Hour()) + ":" + String(RTCtime.Minute()) + ":" + String(RTCtime.Second()); //the timestamp in seconds
       datatoWrite += "\t";
-      datatoWrite += entry; //how many good values went into this measurment
+      datatoWrite += entry; //write the entry string
       dataFile.println(datatoWrite);
       dataFile.close();
       Serial.println("Logfile Written");
