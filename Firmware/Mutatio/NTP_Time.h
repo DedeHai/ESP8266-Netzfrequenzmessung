@@ -1,5 +1,5 @@
 
-#define REQUESTSTOAVERAGE 50 //number of requests to send to server to get the average time during fastupdate
+#define REQUESTSTOAVERAGE 80 //number of requests to send to server to get the average time during fastupdate
 #define ALLOWEDROUNDTRIPDELAY 30 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
 //#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
 
@@ -158,6 +158,11 @@ void syncFCPU(void)
   static uint32_t synctime;
   if (syncinprogress == 0)
   {
+    if (RTCsynctime > 48) //update RTC from localtime about once per day
+    {
+      updateRTCfromlocaltime();
+      RTCsynctime = 0;
+    }
     //start new sync, save current time:
     Serial.println(F("FCPU timesync started"));
 #ifdef USE_RTC_FOR_CPUSYNC //use RTC
@@ -188,9 +193,9 @@ void syncFCPU(void)
   }
   else
   {
-    if (millis() - synctime > 1800000) //check FCPU sync after 30 minutes
+    if (millis() - synctime > 3600000) //check FCPU sync after 60 minutes
     {
-      if (FCPU_timestamp.millistimestamp < millis()) //check if millis overflowed, start a new sync if it did (timestamps are not valid)
+      if (FCPU_timestamp.millistimestamp < millis() + 2000) //check if millis overflowed, start a new sync if it did (timestamps are not valid)
       {
         //check deviation of millis() counter to absolute time
         timeStruct nowtimestamp;
@@ -253,11 +258,7 @@ void syncFCPU(void)
     }
   }
 
-  if (RTCsynctime > 10) //update RTC from localtime every few hours
-  {
-    updateRTCfromlocaltime();
-    RTCsynctime = 0;
-  }
+
 
 
 }
@@ -375,7 +376,7 @@ void timeManager(uint8_t forceTimeSync)
           }
         }
         // Serial.println(newoffset);
-        localtimeoffset = ((float)newoffset *  0.2) + (localtimeoffset  * ((float)1.0 - 0.2));
+        localtimeoffset = ((float)newoffset *  0.1) + (localtimeoffset  * 0.9);
         Serial.print("Local Time offset [ms] = ");
         Serial.print(localtimeoffset, 2);
         Serial.println("\t(" + String(newoffset) + ")");

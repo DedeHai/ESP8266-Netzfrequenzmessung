@@ -245,7 +245,7 @@ void sendSDPage() //send contents of root directory (no subdirectories supported
   String pageContent = "<HTML><HEAD> <title>Mutatio SD content</title></HEAD>\n";
   pageContent += "<BODY bgcolor=\"#00ccff\" text=\"#000000\">";
   pageContent += "<FONT size=\"6\" FACE=\"Verdana\">\n<BR><b>SD content</b><BR><BR></font>";
-
+  pageContent += "<b>Warning: loading big files will block sendout to server for up to two minutes!</b><BR><BR>\n";
   File dir = SD.open("/");
   dir.rewindDirectory();
   while (true) {
@@ -333,9 +333,9 @@ void handleNotFound() {
   message += server.args();
   message += "\n";
   for (uint8_t i = 0; i < server.args(); i++) {
-    message += " NAME: " + server.argName(i) + "\n VALUE: " + server.arg(i) + "\n";
+    message += " NAME:" + server.argName(i) + "\n VALUE: " + server.arg(i) + "\n";
   }
-  server.send(404, "text / plain", message);
+  server.send(404, "text/plain", message);
   Serial.println(message);
 }
 
