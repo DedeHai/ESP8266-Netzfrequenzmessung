@@ -4,7 +4,8 @@
 Install the Arduino IDE (1.6.7 or later) and add the ESP8266 extension by following the instructions given [here](https://github.com/esp8266/Arduino). I prefer the manual cloning method over the boards manager since it works better for me. If you get any weird compiler errors, try installing manually.
 The Mutatio firmware only uses two external libraries. One can be installed using the Arduino Library Manager. Install the Adafruit NeoPixel from the Manager and manually install the RTC library that can be found [here](https://github.com/Makuna/Rtc).
 After installing the libraries the code should compile without errors.
-**Important: the frequency signal MUST be present to upload code, seems to be a hardware bug**
+**Important: the frequency signal MUST be present to upload code, seems to be a hardware bug.**
+
 To upload the code to the Mutatio, set the board settings to:
 
 ![settings](/Hardware/Mutatio/Pictures/uploadsettings.jpg)
