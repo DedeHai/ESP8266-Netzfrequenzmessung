@@ -35,4 +35,8 @@
 
  21.2.2016
  -add SD readout to webpage, SD card can now be accessed over WiFi
+
+ 11.3.2016
+ -bugfix: overflow in measurement when deviation is >320mHz
+ -merged back with elhierro branch and added a define for a more dynamic island grid
  */

@@ -7,6 +7,8 @@
 #define MEASUREMENTPIN 15 //pin which is used as clock input
 #define PIXEL_PIN 0
 #define ACCESSPOINTIMEOUT 300000 //timeout for accesspoint mode
+
+
 RtcDS3231 RTC; //DS3231 RTC clock on I2C
 ESP8266WebServer server(80); // The Webserver
 WiFiClient client;

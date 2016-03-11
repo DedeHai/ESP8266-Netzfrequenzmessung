@@ -1,8 +1,9 @@
 /*important note:
    All fucntions that are called from the interrupt (including the interrupt itself and functions the functions call)
    must be put in RAM by putting the attribute ICACHE_RAM_ATTR or the system can and will crash eventually!
-
 */
+
+//#define ISLANDNETWORK //if defined, higher grid fluctuations are accepted, an RTC must be present. Also, higher pings to NTP server are permitted
 
 #include "Arduino.h"
 #include <SPI.h>

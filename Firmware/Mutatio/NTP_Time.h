@@ -1,7 +1,13 @@
 
+#ifdef ISLANDNETWORK
+#define REQUESTSTOAVERAGE 200 //number of requests to send to server to get the average time during fastupdate
+#define ALLOWEDROUNDTRIPDELAY 600 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
+#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
+#else
 #define REQUESTSTOAVERAGE 80 //number of requests to send to server to get the average time during fastupdate
 #define ALLOWEDROUNDTRIPDELAY 30 //maximum allowed ping for the NTP server (default: 30) Absolute time accuracy depends on this value
 //#define USE_RTC_FOR_CPUSYNC 1 //uncomment this define to use RTC instead of NTP to sync FCPU, use if NTP sync is inaccurate (i.e. more than 2ms fluctuation)
+#endif
 
 //ntp stuff
 IPAddress timeServerIP; // pool.ntp.org NTP server address
@@ -376,7 +382,11 @@ void timeManager(uint8_t forceTimeSync)
           }
         }
         // Serial.println(newoffset);
+#ifdef ISLANDNETWORK
+        localtimeoffset = ((float)newoffset *  0.05) + (localtimeoffset  * 0.05);
+#else
         localtimeoffset = ((float)newoffset *  0.1) + (localtimeoffset  * 0.9);
+#endif
         Serial.print("Local Time offset [ms] = ");
         Serial.print(localtimeoffset, 2);
         Serial.println("\t(" + String(newoffset) + ")");

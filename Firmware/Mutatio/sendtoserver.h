@@ -29,8 +29,8 @@ uint8_t sendStringToServer(String jsonstring)
   header += msglength;
   header += "\r\n\r\n";
 
-  Serial.print(header);
-  Serial.print(jsonstring);
+  //Serial.print(header);
+  //Serial.print(jsonstring);
   client.print(header);
   client.print(jsonstring);
 
@@ -44,7 +44,7 @@ uint8_t sendStringToServer(String jsonstring)
   // Read all the lines of the reply from server and print them to Serial
   while (client.available()) {
     String line = client.readStringUntil('\r');
-     Serial.println(line); //uncomment this line to see servers response on serial
+     //Serial.println(line); //uncomment this line to see servers response on serial
     if (line.indexOf("200 OK") != -1)
     {
       // Serial.println(F("Server OK"));

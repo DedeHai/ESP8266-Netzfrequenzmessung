@@ -1,4 +1,9 @@
+#ifdef ISLANDNETWORK
+#define ALLOWEDNOISE 1000 //accepted noise in ticks
+#else
 #define ALLOWEDNOISE 700 //accepted noise in ticks 
+#endif
+
 /*
   void ICACHE_RAM_ATTR pininterrupt() {
 
