@@ -100,13 +100,6 @@ void ICACHE_RAM_ATTR pininterrupt() {
     {
       baddataA = baddataB;
       ticksA = ticksB;
-      // Serial.print("B ");
-      // Serial.println(baddataB);
-    }
-    else
-    {
-      //  Serial.print("A ");
-      // Serial.println(baddataA);
     }
 
 
@@ -114,7 +107,7 @@ void ICACHE_RAM_ATTR pininterrupt() {
 
     frequencyoffset = ((((float)FCPU + config.FCPUerror) / capturetimeaverage) - 50.0) * 100000; //frequency offset to 50.000Hz in [mHz]*100
     float lowpassmeasurement = ((((float)FCPU +  config.FCPUerror) / (lowpassfiltered)) - 50.0) * 100000;
-    writeMeasurement((int16_t)frequencyoffset, (uint8_t) (NUMBEROFCAPTURES - baddataA) , (int16_t)lowpassmeasurement);
+    writeMeasurement((int32_t)frequencyoffset, (uint8_t) (NUMBEROFCAPTURES - baddataA) , (int32_t)lowpassmeasurement);
 
 
     datawriteindex = 0;

@@ -38,10 +38,10 @@ struct Config {
 struct Measurement {
   uint32_t Timestamp;
   int16_t milliseconds; //millisecond offset of measurement to timestamp
-  int16_t data;
+  int32_t data;
   uint8_t quality; //number of good datapoints used in this measurement value
   uint8_t flag; //flag showing status of the data, binary encoded: first bit is valid data, second bit is serial printed, third bit is written to SD, fourth bit is sent out to server
-  int16_t lowpassfilteredmeasurement; //!!! for debug
+  int32_t lowpassfilteredmeasurement; //!!! for debug
 };
 
 struct timeStruct {
@@ -107,7 +107,7 @@ void ICACHE_RAM_ATTR getNowTime(timeStruct* t)
   t->millistimestamp = milliseconds;
 }
 
-void ICACHE_RAM_ATTR writeMeasurement(int16_t value, uint8_t gooddatapoints,  int16_t lowpassvalue) //!!!lowpassvalue for debug
+void ICACHE_RAM_ATTR writeMeasurement(int32_t value, uint8_t gooddatapoints,  int32_t lowpassvalue) //!!!lowpassvalue for debug
 {
 
   if (localTimeValid) //can only write the value if local time is set

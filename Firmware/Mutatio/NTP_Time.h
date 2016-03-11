@@ -195,7 +195,7 @@ void syncFCPU(void)
   {
     if (millis() - synctime > 3600000) //check FCPU sync after 60 minutes
     {
-      if (FCPU_timestamp.millistimestamp < millis() + 2000) //check if millis overflowed, start a new sync if it did (timestamps are not valid)
+      if (FCPU_timestamp.millistimestamp < (millis() + 2000)) //check if millis overflowed, start a new sync if it did (timestamps are not valid)
       {
         //check deviation of millis() counter to absolute time
         timeStruct nowtimestamp;
