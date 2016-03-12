@@ -49,6 +49,12 @@ void setup() {
   delay(200); //wait for power to stabilize
   Serial.begin(115200);
   memset(measurementdata, 0, sizeof(measurementdata));
+  Serial.print( F("Compiled: "));
+  Serial.print( F(__DATE__));
+  Serial.print( F(", "));
+  Serial.print( F(__TIME__));
+  Serial.print( F(", "));
+  Serial.println( F(__VERSION__));
   Serial.println(F("\r\nMutatio grid frequency tracker, part of netzsin.us project"));
 
   EEPROM.begin(256); //eeprom emulation on flash, the ESP8266 has no actual EERPOM
@@ -106,7 +112,7 @@ void setup() {
   attachInterrupt(MEASUREMENTPIN, pininterrupt, CHANGE); //trigger both rising and falling
 
 
- 
+
 
 
   config.useDHCP = true;
@@ -135,8 +141,8 @@ void loop() {
       initOTAupdate();
       SDwriteLogfile("WIFI connected");
 
-     // plotly_init(true); //!!! comment this line if not using plotly server
-      
+      // plotly_init(true); //!!! comment this line if not using plotly server
+
     }
     ArduinoOTA.handle();
 
@@ -185,8 +191,8 @@ void loop() {
         latestindex = i;
         measurementdata[i].flag |= 0x02; //data printed, can now be saved to SD
         printMeasurement(i);
-        
-        if(sdWatchdog >0) //not using SD or SD failed 
+
+        if (sdWatchdog > 0) //not using SD or SD failed
         {
           datareadindex = i; //update the read index (is usually done in SD function after saving the value)
         }
@@ -240,11 +246,11 @@ void loop() {
     if (measurementdata[latestindex].flag > 0 && (measurementdata[latestindex].flag & 0x08) == 0 && WiFi.status() == WL_CONNECTED && serverFailed == 0 && !config.sendAllData) //not yet sent and we have a wifi connection
     {
       //plotly_plot(measurementdata[latestindex]);
-      
-        if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
-        {
+
+      if (sendMeasurementToServer(measurementdata[latestindex]) == 0) //send successful?
+      {
         measurementdata[latestindex].flag |= 0x08; //mark as sent out
-        }
+      }
     }
 
     issampling = true;
