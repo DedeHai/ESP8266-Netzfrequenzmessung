@@ -9109,10 +9109,13 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 <pinref part="GND12" gate="1" pin="GND"/>
 </segment>
 <segment>
+<pinref part="J1" gate="J" pin="G1"/>
+<wire x1="168.91" y1="73.66" x2="171.45" y2="73.66" width="0.1524" layer="91"/>
 <wire x1="171.45" y1="73.66" x2="171.45" y2="76.2" width="0.1524" layer="91"/>
 <pinref part="J1" gate="J" pin="G2"/>
 <wire x1="171.45" y1="76.2" x2="168.91" y2="76.2" width="0.1524" layer="91"/>
 <pinref part="GND13" gate="1" pin="GND"/>
+<junction x="171.45" y="73.66"/>
 </segment>
 <segment>
 <pinref part="J1" gate="J" pin="G4"/>
