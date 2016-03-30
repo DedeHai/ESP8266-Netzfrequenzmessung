@@ -57,7 +57,7 @@ void setup() {
   Serial.println( F(__VERSION__));
   Serial.println(F("\r\nMutatio grid frequency tracker, part of netzsin.us project"));
 
-  EEPROM.begin(256); //eeprom emulation on flash, the ESP8266 has no actual EERPOM
+  EEPROM.begin(512); //eeprom emulation on flash, the ESP8266 has no actual EERPOM
   if (!ReadConfig())
   {
     writeDefaultConfig();

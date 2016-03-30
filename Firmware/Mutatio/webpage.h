@@ -197,7 +197,7 @@ void sendPage(void)
   pageContent += config.serverURI;
   pageContent += "\"> Server URI<BR>\n";
 
-  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"16\" name=\"API_KEY\" value=\"";
+  pageContent += "<input type=\"text\" size=\"130\" maxlength=\"200\" name=\"API_KEY\" value=\"";
   pageContent += config.APIkey;
   pageContent += "\"> Server API Key <BR>\n";
 
