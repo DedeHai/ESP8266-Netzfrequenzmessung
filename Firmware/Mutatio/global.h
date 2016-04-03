@@ -4,8 +4,13 @@
 #define FCPU 80000000UL //CPU clock frequency (will be corrected with clock offset in calculation)
 #define NUMBEROFCAPTURES 100 //number of values to capture from frequency pin input before generating a measurement (100 per second)
 #define MEASUREMENTVALUES 120 //array with this many values is created (255 max!)
+#ifdef REV2
+#define MEASUREMENTPIN 15 //pin which is used as clock input
+#define PIXEL_PIN 2
+#else
 #define MEASUREMENTPIN 15 //pin which is used as clock input
 #define PIXEL_PIN 0
+#endif
 #define ACCESSPOINTIMEOUT 300000 //timeout for accesspoint mode
 
 

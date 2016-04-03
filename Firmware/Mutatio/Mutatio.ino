@@ -4,6 +4,7 @@
 */
 
 //#define ISLANDNETWORK //if defined, higher grid fluctuations are accepted, an RTC must be present. Also, higher pings to NTP server are permitted
+#define REV2 //uncomment this define if using REV2 of the Mutatio (different pin definition in global.h)
 
 #include "Arduino.h"
 #include <SPI.h>

@@ -9354,14 +9354,14 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 </net>
 <net name="SIGNAL" class="0">
 <segment>
-<label x="78.74" y="109.22" size="1.778" layer="95" xref="yes"/>
-<wire x1="78.74" y1="109.22" x2="71.12" y2="109.22" width="0.1524" layer="91"/>
-<pinref part="U$2" gate="G$1" pin="D4"/>
-</segment>
-<segment>
 <pinref part="IC2" gate="A" pin="O"/>
 <wire x1="215.9" y1="144.78" x2="236.22" y2="144.78" width="0.1524" layer="91"/>
 <label x="236.22" y="144.78" size="1.778" layer="95" xref="yes"/>
+</segment>
+<segment>
+<label x="116.84" y="93.98" size="1.778" layer="95" xref="yes"/>
+<pinref part="U$2" gate="G$1" pin="D8"/>
+<wire x1="71.12" y1="93.98" x2="116.84" y2="93.98" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="REF1" class="0">
@@ -9474,14 +9474,14 @@ Source: http://www.diodes.com/datasheets/ds23001.pdf</description>
 </net>
 <net name="WS2812_DATA" class="0">
 <segment>
-<label x="73.66" y="93.98" size="1.778" layer="95" xref="yes"/>
-<pinref part="U$2" gate="G$1" pin="D8"/>
-<wire x1="71.12" y1="93.98" x2="73.66" y2="93.98" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="LED" gate="G$1" pin="DIN"/>
 <wire x1="63.5" y1="154.94" x2="68.58" y2="154.94" width="0.1524" layer="91"/>
 <label x="68.58" y="154.94" size="1.778" layer="95" xref="yes"/>
+</segment>
+<segment>
+<label x="106.68" y="109.22" size="1.778" layer="95" xref="yes"/>
+<wire x1="106.68" y1="109.22" x2="71.12" y2="109.22" width="0.1524" layer="91"/>
+<pinref part="U$2" gate="G$1" pin="D4"/>
 </segment>
 </net>
 <net name="N$6" class="0">

@@ -39,4 +39,7 @@
  11.3.2016
  -bugfix: overflow in measurement when deviation is >320mHz
  -merged back with elhierro branch and added a define for a more dynamic island grid
+
+ 3.4.2016
+ -added support for REV2 board: just define REV2 in the main file
  */
