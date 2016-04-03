@@ -193,19 +193,19 @@ void sendPage(void)
   pageContent += "<input type=\"text\" size=\"4\" maxlength=\"4\" name=\"S_PORT\" value=\"";
   pageContent += String(config.serverport);
   pageContent += "\">  Server address:port\n <BR>\n";
-  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"30\" name=\"S_URI\" value=\"";
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"31\" name=\"S_URI\" value=\"";
   pageContent += config.serverURI;
   pageContent += "\"> Server URI<BR>\n";
 
-  pageContent += "<input type=\"text\" size=\"130\" maxlength=\"200\" name=\"API_KEY\" value=\"";
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"31\" name=\"API_KEY\" value=\"";
   pageContent += config.APIkey;
   pageContent += "\"> Server API Key <BR>\n";
 
-  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"32\" name=\"AP_NAME\" value=\"";
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"31\" name=\"AP_NAME\" value=\"";
   pageContent += config.DeviceName;
   pageContent += "\"> AccesPoint device name <BR>\n";
 
-  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"32\" name=\"AP_PASS\" value=\"";
+  pageContent += "<input type=\"text\" size=\"28\" maxlength=\"31\" name=\"AP_PASS\" value=\"";
   pageContent += config.DevicePW;
   pageContent += "\"> AccesPoint password <BR>\n";
 

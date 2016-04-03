@@ -1,7 +1,7 @@
 
 void WriteStringToEEPROM(int beginaddress, String string)
 {
-  if (string.length() > 256) //allocated space in eeprom for each string is 32bytes: 31bytes for string, 1byte for terminating zero, exception: API KEY
+  if (string.length() > 31) //allocated space in eeprom for each string is 32bytes: 31bytes for string, 1byte for terminating zero, exception: API KEY
   {
     return; //quit the function, the string cannot be longer than 256 chars (bad input)
   }
@@ -23,7 +23,7 @@ String  ReadStringFromEEPROM(int beginaddress)
   {
     rChar = EEPROM.read(beginaddress + counter);
     if (rChar == 0) break;
-    if (counter > 256) break;
+    if (counter > 32) break;
     counter++;
     retString.concat(rChar);
   }
@@ -69,7 +69,7 @@ void WriteConfig()
   WriteStringToEEPROM(160, config.DevicePW);
   WriteStringToEEPROM(192, config.serveraddress);
   WriteStringToEEPROM(224, config.serverURI);
-  WriteStringToEEPROM(256, config.APIkey);
+  WriteStringToEEPROM(32, config.APIkey);
 
 
 
@@ -113,7 +113,7 @@ boolean ReadConfig()
     config.DevicePW = ReadStringFromEEPROM(160);
     config.serveraddress =  ReadStringFromEEPROM(192);
     config.serverURI =  ReadStringFromEEPROM(224);
-    config.APIkey = ReadStringFromEEPROM(256);
+    config.APIkey = ReadStringFromEEPROM(32);
 
 
     return true;
